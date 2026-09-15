@@ -12,6 +12,8 @@ export interface User {
   initials: string;
   email: string;
   role: "admin" | "student";
+  joinedAt: string;
+  status: "active" | "disabled";
   courseIds: string[]; // links this user (enrollments) to one or more courses
   bookmarkedResourceIds: string[]; // resources this user has bookmarked
 }

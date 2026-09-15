@@ -322,7 +322,7 @@ export default function ResourceDetailsPage() {
           </div>
 
           <div
-            className="flex min-h-[650px] items-center justify-center rounded-xl border"
+            className="flex min-h-162.5 items-center justify-center rounded-xl border"
             style={{
               borderColor: "var(--border)",
               backgroundColor: "var(--smoke-light)",

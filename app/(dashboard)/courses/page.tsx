@@ -50,7 +50,6 @@ const courseRows: CourseRow[] = courses.map((course) => ({
 }));
 
 const courseColumns = (
-  onView: (courseId: string) => void,
   onEdit: (courseId: string) => void,
   onDelete: (courseId: string) => void,
 ): Column<CourseRow>[] => [
@@ -95,26 +94,24 @@ const courseColumns = (
       <div className="flex items-center justify-center gap-3">
         <button
           type="button"
-          title="View"
-          onClick={() => onView(row.id)}
-          className="cursor-pointer transition-colors duration-200 hover:opacity-70"
-          style={{ color: "var(--muted)" }}
-        >
-          <Eye size={18} strokeWidth={1.7} />
-        </button>
-        <button
-          type="button"
           title="Edit"
-          onClick={() => onEdit(row.id)}
+          onClick={(event) => {
+            event.stopPropagation();
+            onEdit(row.id);
+          }}
           className="cursor-pointer transition-colors duration-200 hover:opacity-70"
           style={{ color: "var(--primary)" }}
         >
           <SquarePen size={18} strokeWidth={1.7} />
         </button>
+
         <button
           type="button"
           title="Delete"
-          onClick={() => onDelete(row.id)}
+          onClick={(event) => {
+            event.stopPropagation();
+            onDelete(row.id);
+          }}
           className="cursor-pointer transition-colors duration-200 hover:opacity-70"
           style={{ color: "var(--danger, #e53e3e)" }}
         >
@@ -211,11 +208,7 @@ function AdminCoursesContent() {
         style={{ borderColor: "var(--border)" }}
       >
         <Table
-          columns={courseColumns(
-            (courseId) => router.push(`/courses/${courseId}`),
-            setCourseToEdit,
-            setCourseToDelete,
-          )}
+          columns={courseColumns(setCourseToEdit, setCourseToDelete)}
           data={courseRows}
           onRowClick={(row) => router.push(`/courses/${row.id}`)}
           pagination={{
@@ -400,12 +393,13 @@ function StudentCoursesContent() {
               <button
                 type="button"
                 onClick={() => router.push(`/courses/${course.id}`)}
-                className="flex-1 cursor-pointer rounded-lg border px-3 py-2 text-[12px] font-medium transition-colors duration-200 hover:bg-(--hover)"
+                className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-medium transition-colors duration-200 hover:bg-(--hover)"
                 style={{
                   borderColor: "var(--border)",
                   color: "var(--foreground)",
                 }}
               >
+                <Eye size={14} strokeWidth={1.7} />
                 View
               </button>
 

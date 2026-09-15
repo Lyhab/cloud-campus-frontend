@@ -75,7 +75,6 @@ const resourceRows: ResourceRow[] = resources.map((resource) => {
 
 // Admin resource table columns
 const resourceColumns = (
-  onView: (resourceId: string) => void,
   onReview: (resourceId: string) => void,
   onDelete: (resourceId: string) => void,
 ): Column<ResourceRow>[] => [
@@ -183,20 +182,6 @@ const resourceColumns = (
     align: "center",
     render: (row) => (
       <div className="flex items-center justify-center gap-3">
-        {/* View */}
-        <button
-          type="button"
-          title="View"
-          onClick={(event) => {
-            event.stopPropagation();
-            onView(row.id);
-          }}
-          className="cursor-pointer transition-colors duration-200 hover:opacity-70"
-          style={{ color: "var(--muted)" }}
-        >
-          <Eye size={18} strokeWidth={1.7} />
-        </button>
-
         {/* Review */}
         <button
           type="button"
@@ -280,11 +265,7 @@ function AdminResourcesContent() {
         style={{ borderColor: "var(--border)" }}
       >
         <Table
-          columns={resourceColumns(
-            (resourceId) => router.push(`/resources/${resourceId}`),
-            setResourceToReview,
-            setResourceToDelete,
-          )}
+          columns={resourceColumns(setResourceToReview, setResourceToDelete)}
           data={adminResourceRows}
           onRowClick={(row) => router.push(`/resources/${row.id}`)}
           pagination={{
