@@ -107,7 +107,7 @@ export default function Table<T extends { id: string | number }>({
           style={{ borderColor: "var(--border)" }}
         >
           <span className="text-[13px]" style={{ color: "var(--muted)" }}>
-            Showing {startIndex + 1}–{Math.min(endIndex, pagination.total)} of{" "}
+            Showing {startIndex + 1} – {Math.min(endIndex, pagination.total)} of{" "}
             {pagination.total}
           </span>
 

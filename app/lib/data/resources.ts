@@ -26,7 +26,7 @@ export const resources: Resource[] = [
   {
     id: "r3",
     courseId: "c1",
-    title: "Week 4 Cloud Architecture",
+    title: "Week 4 Cloud Architecture.",
     fileType: "pptx",
     uploadedBy: "u2", // Mia Patel
     uploadedAt: "2024-11-18",

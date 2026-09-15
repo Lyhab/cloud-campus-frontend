@@ -1,12 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #2563eb;
-  --primary-light: #eff6ff;
   --background: #ffffff;
   --foreground: #0f172a;
-  --muted: #64748b;
-  --muted-light: #94a3b8;
 
   /* Border */
   --border: #e2e8f0;
@@ -17,8 +13,34 @@
   --hover-danger: #fee2e2;
 
   /* Colors */
+  --primary: #2563eb;
   --danger: #e53e3e;
+  --success: #16a34a;
   --smoke: #f5f5f5;
+  --muted: #64748b;
+
+  /* Light Colors */
+  --primary-light: #eff6ff;
+  --danger-light: #fff5f5;
+  --success-light: #f0fdf4;
+  --smoke-light: #fafafa;
+  --muted-light: #94a3b8;
+
+  /* File Type Colors */
+  --pdf: #ef4444;
+  --pptx: #f97316;
+  --docx: #2563eb;
+  --xlsx: #16a34a;
+  --csv: #0891b2;
+  --txt: #64748b;
+
+  /* File Type Light Colors */
+  --pdf-light: #fef2f2;
+  --pptx-light: #fff7ed;
+  --docx-light: #eff6ff;
+  --xlsx-light: #f0fdf4;
+  --csv-light: #ecfeff;
+  --txt-light: #f1f5f9;
 }
 
 @theme inline {
@@ -40,6 +62,36 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+.pdf-badge {
+  background-color: var(--pdf-light);
+  color: var(--pdf);
+}
+
+.pptx-badge {
+  background-color: var(--pptx-light);
+  color: var(--pptx);
+}
+
+.docx-badge {
+  background-color: var(--docx-light);
+  color: var(--docx);
+}
+
+.xlsx-badge {
+  background-color: var(--xlsx-light);
+  color: var(--xlsx);
+}
+
+.csv-badge {
+  background-color: var(--csv-light);
+  color: var(--csv);
+}
+
+.txt-badge {
+  background-color: var(--txt-light);
+  color: var(--txt);
 }
 
 /* Keyframes */

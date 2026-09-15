@@ -107,7 +107,7 @@ const courseColumns = (
           title="Edit"
           onClick={() => onEdit(row.id)}
           className="cursor-pointer transition-colors duration-200 hover:opacity-70"
-          style={{ color: "var(--muted)" }}
+          style={{ color: "var(--primary)" }}
         >
           <SquarePen size={18} strokeWidth={1.7} />
         </button>

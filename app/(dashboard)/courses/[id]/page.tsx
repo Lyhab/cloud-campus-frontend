@@ -79,7 +79,7 @@ export default function CourseDetailsPage() {
   return (
     <div className="h-full overflow-y-auto p-8">
       {/* Top Actions */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6">
         <button
           type="button"
           onClick={() => router.push("/courses")}
@@ -89,18 +89,6 @@ export default function CourseDetailsPage() {
           <ArrowLeft size={16} strokeWidth={1.8} />
           Back to Courses
         </button>
-
-        {/* Admin only */}
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={() => setIsEditOpen(true)}
-            className="flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-medium text-white transition-opacity bg-(--primary) hover:opacity-90"
-          >
-            <SquarePen size={15} strokeWidth={1.8} />
-            Edit Course
-          </button>
-        )}
       </div>
 
       {/* Course Header */}
@@ -158,21 +146,39 @@ export default function CourseDetailsPage() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-medium text-white transition-opacity bg-(--primary) hover:opacity-90"
-            >
-              <Upload size={16} strokeWidth={1.8} />
-              Upload Resource
-            </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {isAdmin ? (
+              <>
+                {/* Edit Course */}
+                <button
+                  type="button"
+                  onClick={() => setIsEditOpen(true)}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-medium text-white transition-opacity bg-(--primary) hover:opacity-90"
+                >
+                  <SquarePen size={15} strokeWidth={1.8} />
+                  Edit Course
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Upload Resource */}
+                <button
+                  type="button"
+                  className="flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-medium text-white transition-opacity bg-(--primary) hover:opacity-90"
+                >
+                  <Upload size={16} strokeWidth={1.8} />
+                  Upload Resource
+                </button>
 
-            <button
-              type="button"
-              className="cursor-pointer rounded-lg bg-(--smoke) px-4 py-2.5 text-[13px] font-medium text-(--danger) transition-colors hover:bg-(--hover-danger)"
-            >
-              Leave Course
-            </button>
+                {/* Leave Course */}
+                <button
+                  type="button"
+                  className="cursor-pointer rounded-lg bg-(--smoke) px-4 py-2.5 text-[13px] font-medium text-(--danger) transition-colors hover:bg-(--hover-danger)"
+                >
+                  Leave Course
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
