@@ -29,3 +29,12 @@ export interface Resource {
   downloads: number;
   rating: number;
 }
+
+export interface Report {
+  id: string;
+  resourceId: string; // references Resource.id
+  reporterId: string; // userId of the reporter (references User.id)
+  reason: string;
+  date: string;
+  status: "pending" | "dismissed" | "resolved";
+}

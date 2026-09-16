@@ -17,6 +17,8 @@
   --danger: #e53e3e;
   --success: #16a34a;
   --purple: #9333ea;
+  --pending: #eab308;
+  --warning: #f59e0b;
   --smoke: #f5f5f5;
   --muted: #64748b;
 
@@ -25,6 +27,8 @@
   --danger-light: #fff5f5;
   --success-light: #f0fdf4;
   --purple-light: #faf5ff;
+  --pending-light: #fefce8;
+  --warning-light: #fffbeb;
   --smoke-light: #fafafa;
   --muted-light: #94a3b8;
 
@@ -64,6 +68,19 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+/* Shadows */
+.shadow-even-sm {
+  box-shadow: 0 0 6px rgba(15, 23, 42, 0.06);
+}
+
+.shadow-even-md {
+  box-shadow: 0 0 12px rgba(15, 23, 42, 0.08);
+}
+
+.shadow-even-lg {
+  box-shadow: 0 0 20px rgba(15, 23, 42, 0.1);
 }
 
 .pdf-badge {

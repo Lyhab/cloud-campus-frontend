@@ -36,6 +36,9 @@ import { resources } from "../../lib/data/resources";
 import { users } from "../../lib/data/users";
 import { courses } from "../../lib/data/courses";
 
+// Helpers
+import { getFileTypeBadgeClass } from "@/app/lib/get-file-type-badge-class";
+
 interface ResourceRow {
   id: string;
   title: string;
@@ -89,19 +92,9 @@ const resourceColumns = (
       return (
         <div className="flex items-center gap-3">
           <span
-            className={`rounded-md px-2 py-1 text-[11px] font-bold ${
-              row.type === "PDF"
-                ? "pdf-badge"
-                : row.type === "PPTX"
-                  ? "pptx-badge"
-                  : row.type === "DOCX"
-                    ? "docx-badge"
-                    : row.type === "XLSX"
-                      ? "xlsx-badge"
-                      : row.type === "CSV"
-                        ? "csv-badge"
-                        : "txt-badge"
-            }`}
+            className={`rounded-md px-2 py-1 text-[11px] font-bold ${getFileTypeBadgeClass(
+              row.type,
+            )}`}
           >
             {row.type}
           </span>
@@ -506,19 +499,9 @@ function StudentResourcesContent({
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <span
-                  className={`rounded-md px-2 py-2 text-[11px] font-bold ${
-                    resource.fileType.toUpperCase() === "PDF"
-                      ? "pdf-badge"
-                      : resource.fileType.toUpperCase() === "PPTX"
-                        ? "pptx-badge"
-                        : resource.fileType.toUpperCase() === "DOCX"
-                          ? "docx-badge"
-                          : resource.fileType.toUpperCase() === "XLSX"
-                            ? "xlsx-badge"
-                            : resource.fileType.toUpperCase() === "CSV"
-                              ? "csv-badge"
-                              : "txt-badge"
-                  }`}
+                  className={`rounded-md px-2 py-2 text-[11px] font-bold ${getFileTypeBadgeClass(
+                    resource.fileType,
+                  )}`}
                 >
                   {resource.fileType.toUpperCase()}
                 </span>
