@@ -9,7 +9,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-0 flex-1 flex-col">
         <Header name="Lyhab Rithyny" initials="LR" />
 
-        <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
   );

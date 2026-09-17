@@ -5,7 +5,7 @@ export const resources: Resource[] = [
     id: "r1",
     courseId: "c1",
     title: "REST API Cheat Sheet",
-    fileType: "pdf",
+    fileType: "csv",
     uploadedBy: "u3", // James Liu
     uploadedAt: "2024-11-20",
     fileSizeMb: 0.9,
@@ -16,7 +16,7 @@ export const resources: Resource[] = [
     id: "r2",
     courseId: "c1",
     title: "AWS S3 Study Notes",
-    fileType: "pdf",
+    fileType: "xlsx",
     uploadedBy: "u1", // Lyhab Rithyny
     uploadedAt: "2024-11-12",
     fileSizeMb: 2.4,
@@ -44,6 +44,17 @@ export const resources: Resource[] = [
     fileSizeMb: 1.6,
     downloads: 120,
     rating: 4.6,
+  },
+  {
+    id: "r5",
+    courseId: "c2",
+    title: "Decision Tree Classification Notes",
+    fileType: "docx",
+    uploadedBy: "u4", // Noah Brown
+    uploadedAt: "2024-10-12",
+    fileSizeMb: 3.2,
+    downloads: 96,
+    rating: 4.4,
   },
 ];
 

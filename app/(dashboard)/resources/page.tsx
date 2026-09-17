@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // Icons
 import {
@@ -55,7 +55,7 @@ interface ResourceRow {
 // Replace with authenticated user later.
 const user = {
   id: "u1",
-  role: "admin" as "admin" | "student",
+  role: "student" as "admin" | "student",
 };
 
 // Map resources into table rows.
@@ -606,18 +606,44 @@ function StudentResourcesContent({
 }
 
 export default function ResourcesPage() {
-  const [viewAsStudent, setViewAsStudent] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [resourceView, setResourceView] = useState<
-    "all" | "bookmarked" | "uploads"
-  >("all");
+  const [viewAsStudent, setViewAsStudent] = useState(false);
 
   const [search, setSearch] = useState("");
   const [courseId, setCourseId] = useState("all");
   const [fileType, setFileType] = useState("all");
-  const [sort, setSort] = useState("newest");
+
+  // Read filter from URL.
+  // Example: /resources?filter=top-rated
+  const urlFilter = searchParams.get("filter");
+
+  const resourceView: "all" | "bookmarked" | "uploads" =
+    urlFilter === "my-uploads"
+      ? "uploads"
+      : urlFilter === "bookmarked"
+        ? "bookmarked"
+        : "all";
+
+  const [sort, setSort] = useState(
+    urlFilter === "top-rated" ? "rating" : "newest",
+  );
 
   const isAdmin = user.role === "admin";
+
+  // Keep the sort in sync if the URL filter changes.
+  const activeSort = urlFilter === "top-rated" ? "rating" : sort;
+
+  const handleResourceViewChange = (view: "all" | "bookmarked" | "uploads") => {
+    if (view === "uploads") {
+      router.push("/resources?filter=my-uploads");
+    } else if (view === "bookmarked") {
+      router.push("/resources?filter=bookmarked");
+    } else {
+      router.push("/resources");
+    }
+  };
 
   return (
     <div className="h-full overflow-y-auto p-8">
@@ -634,7 +660,7 @@ export default function ResourcesPage() {
         viewAsStudent ? (
           <StudentResourcesHeader
             view={resourceView}
-            onViewChange={setResourceView}
+            onViewChange={handleResourceViewChange}
           />
         ) : (
           <AdminResourcesHeader />
@@ -642,7 +668,7 @@ export default function ResourcesPage() {
       ) : (
         <StudentResourcesHeader
           view={resourceView}
-          onViewChange={setResourceView}
+          onViewChange={handleResourceViewChange}
         />
       )}
 
@@ -684,8 +710,15 @@ export default function ResourcesPage() {
             ? [
                 {
                   name: "sort",
-                  value: sort,
-                  onChange: setSort,
+                  value: activeSort,
+                  onChange: (value: string) => {
+                    setSort(value);
+
+                    // Remove URL filter when manually changing sort.
+                    if (urlFilter === "top-rated") {
+                      router.push("/resources");
+                    }
+                  },
                   options: [
                     { label: "Newest", value: "newest" },
                     { label: "Most Downloaded", value: "downloads" },
@@ -705,7 +738,7 @@ export default function ResourcesPage() {
             search={search}
             courseId={courseId}
             fileType={fileType}
-            sort={sort}
+            sort={activeSort}
           />
         ) : (
           <AdminResourcesContent />
@@ -716,7 +749,7 @@ export default function ResourcesPage() {
           search={search}
           courseId={courseId}
           fileType={fileType}
-          sort={sort}
+          sort={activeSort}
         />
       )}
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // Icons
 import { Plus, Eye, SquarePen, Trash2, Users, FileText } from "lucide-react";
@@ -27,7 +27,7 @@ import {
 
 // Data
 import { courses } from "../../lib/data/courses";
-import { getUserCountForCourse } from "../../lib/data/users";
+import { getUserCountForCourse, users } from "../../lib/data/users";
 import { getResourceCountForCourse } from "../../lib/data/resources";
 
 interface CourseRow {
@@ -39,7 +39,7 @@ interface CourseRow {
   createdAt: string;
 }
 
-// Map raw Course records into table rows, deriving counts from the related data.
+// Map raw Course records into table rows, deriving counts from related data.
 const courseRows: CourseRow[] = courses.map((course) => ({
   id: course.id,
   code: course.code,
@@ -82,9 +82,24 @@ const courseColumns = (
       </span>
     ),
   },
-  { key: "students", header: "Students", width: "12%", align: "center" },
-  { key: "resources", header: "Resources", width: "12%", align: "center" },
-  { key: "createdAt", header: "Created", width: "16%", align: "center" },
+  {
+    key: "students",
+    header: "Students",
+    width: "12%",
+    align: "center",
+  },
+  {
+    key: "resources",
+    header: "Resources",
+    width: "12%",
+    align: "center",
+  },
+  {
+    key: "createdAt",
+    header: "Created",
+    width: "16%",
+    align: "center",
+  },
   {
     key: "id",
     header: "Actions",
@@ -167,7 +182,7 @@ function AdminCoursesHeader() {
         <button
           type="button"
           onClick={() => setIsCreateOpen(true)}
-          className="cursor-pointer flex items-center gap-2 rounded-lg px-4 py-2.5 text-[14px] font-medium text-background transition-colors duration-200 hover:opacity-90"
+          className="flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2.5 text-[14px] font-medium text-background transition-colors duration-200 hover:opacity-90"
           style={{ backgroundColor: "var(--primary)" }}
         >
           <Plus size={18} strokeWidth={2} />
@@ -275,58 +290,70 @@ function AdminCoursesContent() {
   );
 }
 
-function StudentCoursesHeader() {
+function StudentCoursesHeader({
+  view,
+  onViewChange,
+}: {
+  view: "all" | "my-courses";
+  onViewChange: (view: "all" | "my-courses") => void;
+}) {
   return (
-    <>
-      {/* Page header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1
-            className="text-2xl font-bold"
-            style={{ color: "var(--foreground)" }}
-          >
-            Courses
-          </h1>
-
-          <p className="mt-1 text-[14px]" style={{ color: "var(--muted)" }}>
-            Browse and join courses to access shared study resources.
-          </p>
-        </div>
-
-        <div
-          className="flex items-center rounded-lg p-1"
-          style={{ backgroundColor: "var(--primary-light)" }}
+    <div className="mb-6 flex items-center justify-between">
+      <div>
+        <h1
+          className="text-2xl font-bold"
+          style={{ color: "var(--foreground)" }}
         >
-          <button
-            type="button"
-            className="cursor-pointer rounded-md bg-background px-4 py-1.5 text-[12px] font-medium shadow-sm"
-            style={{ color: "var(--foreground)" }}
-          >
-            All Courses
-          </button>
+          Explore Courses
+        </h1>
 
-          <button
-            type="button"
-            className="cursor-pointer rounded-md px-4 py-1.5 text-[12px] font-medium"
-            style={{ color: "var(--muted)" }}
-          >
-            My Courses
-          </button>
-        </div>
+        <p className="mt-1 text-[14px]" style={{ color: "var(--muted)" }}>
+          Browse courses and access their learning resources.
+        </p>
       </div>
-    </>
+
+      {/* Course Views */}
+      <div
+        className="flex items-center rounded-lg border p-1"
+        style={{
+          borderColor: "var(--border)",
+          backgroundColor: "var(--smoke)",
+        }}
+      >
+        {[
+          { value: "all", label: "All Courses" },
+          { value: "my-courses", label: "My Courses" },
+        ].map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => onViewChange(item.value as "all" | "my-courses")}
+            className={`cursor-pointer rounded-md px-3.5 py-1.5 text-[12px] font-medium transition-all duration-150 ${
+              view === item.value
+                ? "bg-(--primary) text-background shadow-sm"
+                : "text-(--muted)"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
-function StudentCoursesContent() {
+function StudentCoursesContent({
+  displayedCourses,
+}: {
+  displayedCourses: typeof courses;
+}) {
   const router = useRouter();
 
   return (
     <>
       {/* Course cards */}
       <Cards
-        data={courses}
-        // columns={2}
+        data={displayedCourses}
         render={(course) => (
           <div
             className="flex h-full w-full flex-col rounded-xl border bg-background p-4.5 shadow-sm"
@@ -406,7 +433,7 @@ function StudentCoursesContent() {
               <button
                 type="button"
                 onClick={() => console.log("leave", course.id)}
-                className="cursor-pointer rounded-lg px-3 py-2 text-[12px] font-medium transition-colors duration-200 text-(--danger) bg-(--smoke) hover:bg-(--hover-danger)"
+                className="cursor-pointer rounded-lg bg-(--smoke) px-3 py-2 text-[12px] font-medium text-(--danger) transition-colors duration-200 hover:bg-(--hover-danger)"
               >
                 Leave
               </button>
@@ -416,7 +443,7 @@ function StudentCoursesContent() {
         pagination={{
           page: 1,
           pageSize: 5,
-          total: courses.length,
+          total: displayedCourses.length,
           onPageChange: (page) => console.log(page),
         }}
       />
@@ -425,19 +452,43 @@ function StudentCoursesContent() {
 }
 
 const user = {
-  role: "admin" as "admin" | "student",
+  role: "student" as "admin" | "student",
 };
 
 export default function CoursesPage() {
+  // Admin / Student preview toggle
   const [viewAsStudent, setViewAsStudent] = useState(false);
+
   const [search, setSearch] = useState("");
   const [codeFilter, setCodeFilter] = useState("all");
   const [sort, setSort] = useState("name-asc");
+
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const currentUser = users[0];
+
+  const courseView =
+    searchParams.get("filter") === "my-courses" ? "my-courses" : "all";
+
+  const handleCourseViewChange = (view: "all" | "my-courses") => {
+    if (view === "my-courses") {
+      router.push("/courses?filter=my-courses");
+    } else {
+      router.push("/courses");
+    }
+  };
+
+  const displayedCourses =
+    courseView === "my-courses"
+      ? courses.filter((course) => currentUser.courseIds.includes(course.id))
+      : courses;
 
   const isAdmin = user.role === "admin";
 
   return (
     <div className="h-full overflow-y-auto p-8">
+      {/* Admin / Student Toggle */}
       {isAdmin && (
         <ViewToggle
           value={viewAsStudent ? "student" : "admin"}
@@ -448,12 +499,18 @@ export default function CoursesPage() {
       {/* Page Header */}
       {isAdmin ? (
         viewAsStudent ? (
-          <StudentCoursesHeader />
+          <StudentCoursesHeader
+            view={courseView}
+            onViewChange={handleCourseViewChange}
+          />
         ) : (
           <AdminCoursesHeader />
         )
       ) : (
-        <StudentCoursesHeader />
+        <StudentCoursesHeader
+          view={courseView}
+          onViewChange={handleCourseViewChange}
+        />
       )}
 
       {/* Search + Filters */}
@@ -489,12 +546,12 @@ export default function CoursesPage() {
       {/* Content */}
       {isAdmin ? (
         viewAsStudent ? (
-          <StudentCoursesContent />
+          <StudentCoursesContent displayedCourses={displayedCourses} />
         ) : (
           <AdminCoursesContent />
         )
       ) : (
-        <StudentCoursesContent />
+        <StudentCoursesContent displayedCourses={displayedCourses} />
       )}
     </div>
   );

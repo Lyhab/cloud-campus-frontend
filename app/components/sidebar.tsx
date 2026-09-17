@@ -141,7 +141,7 @@ export default function Sidebar() {
 
       {/* Collapse / Expand */}
       <div
-        className="shrink-0 border-t p-3"
+        className="shrink-0 border-t p-2.5"
         style={{ borderColor: "var(--border-light)" }}
       >
         <button

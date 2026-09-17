@@ -22,7 +22,7 @@ export interface Resource {
   id: string;
   courseId: string; // links this resource to a course
   title: string;
-  fileType: "pdf" | "pptx" | "docx" | "xlsx";
+  fileType: "pdf" | "pptx" | "docx" | "xlsx" | "csv" | "txt";
   uploadedBy: string; // userId of the uploader (references User.id)
   uploadedAt: string;
   fileSizeMb: number;

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { UserRoundCog, Power } from "lucide-react";
+import { User, UserShield, Lock, LockOpen } from "lucide-react";
 
 // Components
 import Table, { Column } from "@/app/components/table";
@@ -160,7 +160,11 @@ const userColumns = (
             color: row.role === "admin" ? "var(--primary)" : "var(--purple)",
           }}
         >
-          <UserRoundCog size={18} strokeWidth={1.7} />
+          {row.role === "admin" ? (
+            <User size={18} strokeWidth={1.7} />
+          ) : (
+            <UserShield size={18} strokeWidth={1.7} />
+          )}
         </button>
 
         {/* Enable / Disable */}
@@ -176,7 +180,11 @@ const userColumns = (
             color: row.status === "active" ? "var(--danger)" : "var(--success)",
           }}
         >
-          <Power size={18} strokeWidth={1.7} />
+          {row.status === "active" ? (
+            <Lock size={18} strokeWidth={1.7} />
+          ) : (
+            <LockOpen size={18} strokeWidth={1.7} />
+          )}
         </button>
       </div>
     ),
