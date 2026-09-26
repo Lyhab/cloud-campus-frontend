@@ -12,6 +12,7 @@ import SearchFilter from "@/app/components/search-filter";
 import { reports } from "../../lib/data/reports";
 import { resources } from "../../lib/data/resources";
 import { users } from "../../lib/data/users";
+import { mockViewer } from "../../lib/data/mock-viewer";
 import type { Report } from "../../lib/types";
 
 // Helpers
@@ -159,6 +160,36 @@ export default function ReportsPage() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending");
+
+  const isAdmin = mockViewer.role === "admin";
+
+  if (!isAdmin) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center">
+          <h1
+            className="text-xl font-semibold"
+            style={{ color: "var(--foreground)" }}
+          >
+            Access Denied
+          </h1>
+
+          <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
+            This page is available to administrators only.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard")}
+            className="mt-3 cursor-pointer text-sm"
+            style={{ color: "var(--primary)" }}
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const pendingCount = reports.filter((r) => r.status === "pending").length;
 

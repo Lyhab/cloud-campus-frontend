@@ -13,6 +13,7 @@ import { reports } from "../../../lib/data/reports";
 import { resources } from "../../../lib/data/resources";
 import { courses } from "../../../lib/data/courses";
 import { users } from "../../../lib/data/users";
+import { mockViewer } from "../../../lib/data/mock-viewer";
 
 // Helpers
 import { getFileTypeBadgeClass } from "@/app/lib/get-file-type-badge-class";
@@ -20,6 +21,35 @@ import { getFileTypeBadgeClass } from "@/app/lib/get-file-type-badge-class";
 export default function ReportDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const isAdmin = mockViewer.role === "admin";
+
+  if (!isAdmin) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center">
+          <h1
+            className="text-xl font-semibold"
+            style={{ color: "var(--foreground)" }}
+          >
+            Access Denied
+          </h1>
+
+          <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
+            This page is available to administrators only.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard")}
+            className="mt-3 cursor-pointer text-sm"
+            style={{ color: "var(--primary)" }}
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const report = reports.find((report) => report.id === params.id);
 
@@ -130,7 +160,7 @@ export default function ReportDetailsPage() {
             fileTypeClass={fileTypeClass}
             courseLabel={courseLabel}
             uploaderName={uploader?.name ?? resource.uploadedBy}
-            isAdmin={true}
+            isAdmin={isAdmin}
             showActions={false}
             onCourseClick={() => course && router.push(`/courses/${course.id}`)}
             averageRating={resource.rating}

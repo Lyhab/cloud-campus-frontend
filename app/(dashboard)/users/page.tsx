@@ -12,6 +12,7 @@ import SearchFilter from "@/app/components/search-filter";
 // Data
 import { users } from "../../lib/data/users";
 import { resources } from "../../lib/data/resources";
+import { mockViewer } from "../../lib/data/mock-viewer";
 
 interface UserRow {
   id: string;
@@ -193,14 +194,7 @@ const userColumns = (
 
 export default function UsersPage() {
   const router = useRouter();
-
-  // Temporary frontend role check.
-  // Replace with authenticated user data later.
-  const currentUser = {
-    role: "admin" as "admin" | "student",
-  };
-
-  const isAdmin = currentUser.role === "admin";
+  const isAdmin = mockViewer.role === "admin";
 
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -218,8 +212,17 @@ export default function UsersPage() {
           </h1>
 
           <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
-            You do not have permission to access this page.
+            This page is available to administrators only.
           </p>
+
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard")}
+            className="mt-3 cursor-pointer text-sm"
+            style={{ color: "var(--primary)" }}
+          >
+            Back to Dashboard
+          </button>
         </div>
       </div>
     );
