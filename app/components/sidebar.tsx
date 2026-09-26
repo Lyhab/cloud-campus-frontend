@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -25,8 +26,16 @@ const studentNavItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Courses", href: "/courses", icon: BookOpen },
   { label: "Resources", href: "/resources", icon: FileText },
-  { label: "Bookmarks", href: "/bookmarks", icon: Bookmark },
-  { label: "My Uploads", href: "/my-uploads", icon: UploadCloud },
+  {
+    label: "Bookmarks",
+    href: "/resources?filter=bookmarked",
+    icon: Bookmark,
+  },
+  {
+    label: "My Uploads",
+    href: "/resources?filter=my-uploads",
+    icon: UploadCloud,
+  },
 ];
 
 export default function Sidebar() {
@@ -107,7 +116,7 @@ export default function Sidebar() {
             const isActive = index === activeIndex;
 
             return (
-              <a
+              <Link
                 key={item.label}
                 href={item.href}
                 title={collapsed ? item.label : undefined}
@@ -133,7 +142,7 @@ export default function Sidebar() {
                 >
                   {item.label}
                 </span>
-              </a>
+              </Link>
             );
           })}
         </div>

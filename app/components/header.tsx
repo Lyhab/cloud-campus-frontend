@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   Search,
   Bell,
@@ -108,22 +109,24 @@ export default function Header({
               className="absolute right-0 top-full z-20 mt-2 w-48 rounded-lg border bg-background py-1.5 shadow-lg"
               style={{ borderColor: "var(--border)" }}
             >
-              <a
+              <Link
                 href="/profile"
                 className="cursor-pointer flex items-center gap-2.5 px-3.5 py-2 text-[14px] transition-colors duration-200 hover:bg-(--hover)"
                 style={{ color: "var(--foreground)" }}
               >
                 <User size={16} strokeWidth={1.7} />
                 View Profile
-              </a>
-              <a
-                href="/settings"
-                className="cursor-pointer flex items-center gap-2.5 px-3.5 py-2 text-[14px] transition-colors duration-200 hover:bg-(--hover)"
+              </Link>
+              <button
+                type="button"
+                disabled
+                title="Settings are not available yet"
+                className="flex w-full cursor-not-allowed items-center gap-2.5 px-3.5 py-2 text-left text-[14px] opacity-50"
                 style={{ color: "var(--foreground)" }}
               >
                 <Settings size={16} strokeWidth={1.7} />
                 Settings
-              </a>
+              </button>
               <div
                 className="my-1 border-t"
                 style={{ borderColor: "var(--border-light)" }}
