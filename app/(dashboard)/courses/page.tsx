@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 // Icons
@@ -455,7 +455,7 @@ const user = {
   role: "student" as "admin" | "student",
 };
 
-export default function CoursesPage() {
+function CoursesPageContent() {
   // Admin / Student preview toggle
   const [viewAsStudent, setViewAsStudent] = useState(false);
 
@@ -554,5 +554,13 @@ export default function CoursesPage() {
         <StudentCoursesContent displayedCourses={displayedCourses} />
       )}
     </div>
+  );
+}
+
+export default function CoursesPage() {
+  return (
+    <Suspense fallback={null}>
+      <CoursesPageContent />
+    </Suspense>
   );
 }

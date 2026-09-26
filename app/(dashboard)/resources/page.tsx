@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 // Icons
@@ -605,7 +605,7 @@ function StudentResourcesContent({
   );
 }
 
-export default function ResourcesPage() {
+function ResourcesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -753,5 +753,13 @@ export default function ResourcesPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ResourcesPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResourcesPageContent />
+    </Suspense>
   );
 }
