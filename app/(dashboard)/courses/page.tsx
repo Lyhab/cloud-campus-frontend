@@ -27,8 +27,9 @@ import {
 
 // Data
 import { courses } from "../../lib/data/courses";
-import { getUserCountForCourse, users } from "../../lib/data/users";
+import { getUserCountForCourse } from "../../lib/data/users";
 import { getResourceCountForCourse } from "../../lib/data/resources";
+import { mockViewer } from "../../lib/data/mock-viewer";
 
 interface CourseRow {
   id: string;
@@ -451,10 +452,6 @@ function StudentCoursesContent({
   );
 }
 
-const user = {
-  role: "student" as "admin" | "student",
-};
-
 function CoursesPageContent() {
   // Admin / Student preview toggle
   const [viewAsStudent, setViewAsStudent] = useState(false);
@@ -465,8 +462,6 @@ function CoursesPageContent() {
 
   const searchParams = useSearchParams();
   const router = useRouter();
-
-  const currentUser = users[0];
 
   const courseView =
     searchParams.get("filter") === "my-courses" ? "my-courses" : "all";
@@ -481,10 +476,10 @@ function CoursesPageContent() {
 
   const displayedCourses =
     courseView === "my-courses"
-      ? courses.filter((course) => currentUser.courseIds.includes(course.id))
+      ? courses.filter((course) => mockViewer.courseIds.includes(course.id))
       : courses;
 
-  const isAdmin = user.role === "admin";
+  const isAdmin = mockViewer.role === "admin";
 
   return (
     <div className="h-full overflow-y-auto p-8">

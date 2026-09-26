@@ -13,6 +13,7 @@ import {
   UploadCloud,
   ChevronsLeft,
 } from "lucide-react";
+import type { User } from "../lib/types";
 
 const adminNavItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -38,12 +39,14 @@ const studentNavItems = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  role: User["role"];
+}
+
+export default function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
-  const role = "admin";
 
   let navItems;
   if (role === "admin") {

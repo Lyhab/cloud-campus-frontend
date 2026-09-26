@@ -13,6 +13,7 @@ import ResourceRelated from "@/app/components/pages/resources/resource-related";
 import { resources } from "../../../lib/data/resources";
 import { courses } from "../../../lib/data/courses";
 import { users } from "../../../lib/data/users";
+import { mockViewer } from "../../../lib/data/mock-viewer";
 
 // Helpers
 import { getFileTypeBadgeClass } from "@/app/lib/get-file-type-badge-class";
@@ -23,15 +24,10 @@ export default function ResourceDetailsPage() {
 
   const resource = resources.find((resource) => resource.id === params.id);
 
-  const user = {
-    id: "current-user-id", // TODO: replace with real auth/session user
-    role: "admin" as "admin" | "student",
-  };
-
-  const isAdmin = user.role === "admin";
+  const isAdmin = mockViewer.role === "admin";
 
   // --- Rating state ---
-  // TODO: hydrate this from resource.ratings (e.g. find the entry for user.id)
+  // TODO: hydrate this from resource.ratings (e.g. find the entry for mockViewer.id)
   const [userRating, setUserRating] = useState<number>(0);
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [averageRating, setAverageRating] = useState<number>(
@@ -58,7 +54,7 @@ export default function ResourceDetailsPage() {
     // TODO: call your API here, e.g.
     // await fetch(`/api/resources/${resource.id}/rate`, {
     //   method: "POST",
-    //   body: JSON.stringify({ userId: user.id, value }),
+    //   body: JSON.stringify({ userId: mockViewer.id, value }),
     // });
   };
 

@@ -35,6 +35,7 @@ import {
 import { resources } from "../../lib/data/resources";
 import { users } from "../../lib/data/users";
 import { courses } from "../../lib/data/courses";
+import { mockViewer } from "../../lib/data/mock-viewer";
 
 // Helpers
 import { getFileTypeBadgeClass } from "@/app/lib/get-file-type-badge-class";
@@ -50,13 +51,6 @@ interface ResourceRow {
   rating: number;
   status: "pending" | "approved" | "denied";
 }
-
-// Static current user for now.
-// Replace with authenticated user later.
-const user = {
-  id: "u1",
-  role: "student" as "admin" | "student",
-};
 
 // Map resources into table rows.
 const resourceRows: ResourceRow[] = resources.map((resource) => {
@@ -426,7 +420,7 @@ function StudentResourcesContent({
 
   const [bookmarkedIds, setBookmarkedIds] = useState<string[]>(
     () =>
-      users.find((item) => item.id === user.id)?.bookmarkedResourceIds ?? [],
+      mockViewer.bookmarkedResourceIds,
   );
 
   const currentResources = resources.filter((resource) => {
@@ -435,7 +429,7 @@ function StudentResourcesContent({
     }
 
     if (view === "uploads") {
-      return resource.uploadedBy === user.id;
+      return resource.uploadedBy === mockViewer.id;
     }
 
     return true;
@@ -630,7 +624,7 @@ function ResourcesPageContent() {
     urlFilter === "top-rated" ? "rating" : "newest",
   );
 
-  const isAdmin = user.role === "admin";
+  const isAdmin = mockViewer.role === "admin";
 
   // Keep the sort in sync if the URL filter changes.
   const activeSort = urlFilter === "top-rated" ? "rating" : sort;

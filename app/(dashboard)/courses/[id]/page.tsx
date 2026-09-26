@@ -19,6 +19,7 @@ import {
   getUserCountForCourse,
   getUsersForCourse,
 } from "../../../lib/data/users";
+import { mockViewer } from "../../../lib/data/mock-viewer";
 
 export default function CourseDetailsPage() {
   const params = useParams();
@@ -57,11 +58,7 @@ export default function CourseDetailsPage() {
   const courseResources = getResourcesForCourse(course.id);
   const courseStudents = getUsersForCourse(course.id);
 
-  const user = {
-    role: "student" as "admin" | "student",
-  };
-
-  const isAdmin = user.role === "admin";
+  const isAdmin = mockViewer.role === "admin";
 
   return (
     <div className="h-full overflow-y-auto p-8">

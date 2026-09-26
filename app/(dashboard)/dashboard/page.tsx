@@ -23,13 +23,12 @@ import { courses } from "@/app/lib/data/courses";
 import { resources } from "@/app/lib/data/resources";
 import { users } from "@/app/lib/data/users";
 import { reports } from "@/app/lib/data/reports";
-
-const currentUser = users[0];
+import { mockViewer } from "@/app/lib/data/mock-viewer";
 
 export default function DashboardPage() {
   const router = useRouter();
 
-  const isAdmin = currentUser.role === "admin";
+  const isAdmin = mockViewer.role === "admin";
 
   const recentUploads = resources.slice(0, 5).map((resource) => {
     const uploader = users.find((user) => user.id === resource.uploadedBy);
@@ -112,7 +111,7 @@ export default function DashboardPage() {
     });
 
   const studentCourses = courses
-    .filter((course) => currentUser.courseIds?.includes(course.id))
+    .filter((course) => mockViewer.courseIds.includes(course.id))
     .map((course) => ({
       code: course.code,
       name: course.name,
@@ -153,7 +152,7 @@ export default function DashboardPage() {
           className="text-2xl font-bold"
           style={{ color: "var(--foreground)" }}
         >
-          {getGreeting()}, {currentUser.name}
+          {getGreeting()}, {mockViewer.name}
         </h1>
 
         <p className="mt-1 text-[14px]" style={{ color: "var(--muted)" }}>
@@ -327,7 +326,7 @@ export default function DashboardPage() {
               label="My Uploads"
               value={
                 resources.filter(
-                  (resource) => resource.uploadedBy === currentUser.id,
+                  (resource) => resource.uploadedBy === mockViewer.id,
                 ).length
               }
               icon={Upload}
@@ -337,8 +336,7 @@ export default function DashboardPage() {
             <DashboardStatisticCard
               label="Bookmarked"
               value={
-                users.find((user) => user.id === currentUser.id)
-                  ?.bookmarkedResourceIds.length ?? 0
+                mockViewer.bookmarkedResourceIds.length
               }
               icon={Bookmark}
               onClick={() => router.push("/resources?filter=bookmarked")}

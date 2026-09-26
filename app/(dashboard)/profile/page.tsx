@@ -1,19 +1,33 @@
 import DashboardIcon from "../_components/dashboard-icon";
+import { courses } from "../../lib/data/courses";
+import { mockViewer } from "../../lib/data/mock-viewer";
+import { getResourcesUploadedByUser } from "../../lib/data/resources";
 
-const profile = {
-  name: "Alex Chen",
-  initials: "AC",
-  email: "alex.chen@uni.edu",
-  role: "Student",
-  status: "Active",
-  joinedAt: "15 February 2024",
-};
+const uploadedResources = getResourcesUploadedByUser(mockViewer.id);
+const coursesJoined = courses.filter((course) =>
+  mockViewer.courseIds.includes(course.id),
+).length;
+const totalDownloads = uploadedResources.reduce(
+  (total, resource) => total + resource.downloads,
+  0,
+);
 
 const stats = [
-  { value: "2", label: "Courses Joined", icon: "book" as const },
-  { value: "5", label: "Resources Uploaded", icon: "file" as const },
-  { value: "1.2K", label: "Total Downloads", icon: "download" as const },
+  { value: coursesJoined, label: "Courses Joined", icon: "book" as const },
+  {
+    value: uploadedResources.length,
+    label: "Resources Uploaded",
+    icon: "file" as const,
+  },
+  {
+    value: totalDownloads,
+    label: "Total Downloads",
+    icon: "download" as const,
+  },
 ];
+
+const roleLabel = mockViewer.role === "admin" ? "Admin" : "Student";
+const statusLabel = mockViewer.status === "active" ? "Active" : "Disabled";
 
 const buttonClass = "rounded-lg border border-[#e2e8f0] bg-white px-4 py-2 text-sm font-medium text-[#334155] shadow-sm outline-none transition hover:bg-[#f8fafc] focus-visible:ring-2 focus-visible:ring-[#2563eb]";
 
@@ -27,11 +41,11 @@ export default function ProfilePage() {
 
       <section className="mt-8 flex flex-col gap-5 rounded-2xl border border-[#e2e8f0] bg-white p-6 shadow-[0_2px_5px_rgba(15,23,42,0.08)] sm:flex-row sm:items-center sm:justify-between sm:p-8">
         <div className="flex items-center gap-5">
-          <div className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-[#3b82f6] text-2xl font-bold text-white sm:size-24 sm:text-3xl">{profile.initials}</div>
+          <div className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-[#3b82f6] text-2xl font-bold text-white sm:size-24 sm:text-3xl">{mockViewer.initials}</div>
           <div>
-            <h2 className="text-xl font-bold sm:text-2xl">{profile.name}</h2>
-            <p className="mt-1 text-sm text-[#64748b] sm:text-base">{profile.email}</p>
-            <span className="mt-2 inline-flex rounded-md bg-[#eff6ff] px-2.5 py-1 text-xs font-medium text-[#2563eb] sm:text-sm">{profile.role}</span>
+            <h2 className="text-xl font-bold sm:text-2xl">{mockViewer.name}</h2>
+            <p className="mt-1 text-sm text-[#64748b] sm:text-base">{mockViewer.email}</p>
+            <span className="mt-2 inline-flex rounded-md bg-[#eff6ff] px-2.5 py-1 text-xs font-medium text-[#2563eb] sm:text-sm">{roleLabel}</span>
           </div>
         </div>
         <button type="button" aria-disabled="true" title="Photo editing will be available after backend integration" className={buttonClass}>Change Photo</button>
@@ -54,11 +68,11 @@ export default function ProfilePage() {
         </div>
         <dl className="mt-6 divide-y divide-[#f1f5f9]">
           {[
-            ["Full Name", profile.name],
-            ["Email Address", profile.email],
-            ["Role", profile.role],
-            ["Status", profile.status],
-            ["Member Since", profile.joinedAt],
+            ["Full Name", mockViewer.name],
+            ["Email Address", mockViewer.email],
+            ["Role", roleLabel],
+            ["Status", statusLabel],
+            ["Member Since", mockViewer.joinedAt],
           ].map(([label, value]) => (
             <div key={label} className="flex flex-col gap-1 py-4 text-sm sm:flex-row sm:items-center sm:justify-between sm:text-base">
               <dt className="text-[#64748b]">{label}</dt>
