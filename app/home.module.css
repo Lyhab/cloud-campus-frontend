@@ -1,0 +1,94 @@
+@keyframes heroEnter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes statEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.88);
+  }
+  70% {
+    transform: translateY(-2px) scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.heroContent {
+  animation: heroEnter 650ms ease-out both;
+}
+
+.stat {
+  animation: statEnter 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.stat:nth-child(2) {
+  animation-delay: 100ms;
+}
+
+.stat:nth-child(3) {
+  animation-delay: 200ms;
+}
+
+.stat:nth-child(4) {
+  animation-delay: 300ms;
+}
+
+.statValue {
+  transition: color 200ms ease, transform 200ms ease;
+}
+
+.stat:hover .statValue {
+  color: #2563eb;
+  transform: translateY(-3px) scale(1.08);
+}
+
+.featureCard {
+  transition: border-color 250ms ease, box-shadow 250ms ease,
+    transform 250ms ease;
+}
+
+.featureCard:hover {
+  border-color: #bfdbfe;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.1);
+  transform: translateY(-8px);
+}
+
+.featureIcon {
+  transition: background-color 250ms ease, color 250ms ease,
+    transform 250ms ease;
+}
+
+.featureCard:hover .featureIcon {
+  background-color: #2563eb;
+  color: white;
+  transform: rotate(-4deg) scale(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroContent,
+  .stat {
+    animation: none;
+  }
+
+  .statValue,
+  .featureCard,
+  .featureIcon {
+    transition: none;
+  }
+
+  .stat:hover .statValue,
+  .featureCard:hover,
+  .featureCard:hover .featureIcon {
+    transform: none;
+  }
+}
