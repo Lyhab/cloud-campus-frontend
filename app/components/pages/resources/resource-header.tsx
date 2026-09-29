@@ -42,7 +42,7 @@ export default function ResourceHeader({
       className="rounded-xl border bg-background p-7 shadow-even-md"
       style={{ borderColor: "var(--border)" }}
     >
-      <div className="flex items-start justify-between gap-8">
+      <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:gap-8">
         {/* Resource Details */}
         <div className="min-w-0">
           {/* File Type */}

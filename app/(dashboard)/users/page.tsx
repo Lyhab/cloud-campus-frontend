@@ -244,7 +244,7 @@ export default function UsersPage() {
   });
 
   return (
-    <div className="h-full overflow-y-auto p-8">
+    <div className="h-full overflow-y-auto p-4 sm:p-8">
       {/* Page Header */}
       <div className="mb-6">
         <h1

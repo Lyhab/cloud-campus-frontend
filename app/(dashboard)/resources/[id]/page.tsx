@@ -100,7 +100,7 @@ export default function ResourceDetailsPage() {
     .slice(0, 5);
 
   return (
-    <div className="h-full overflow-y-auto p-8">
+    <div className="h-full overflow-y-auto p-4 sm:p-8">
       {/* Back */}
       <div className="mb-6">
         <button
@@ -131,7 +131,7 @@ export default function ResourceDetailsPage() {
       />
 
       {/* Main Content */}
-      <div className="mt-7 grid grid-cols-[1fr_320px] gap-7">
+      <div className="mt-7 grid gap-7 xl:grid-cols-[minmax(0,1fr)_320px]">
         <ResourceFilePreview
           fileType={fileType}
           fileTypeClass={fileTypeClass}

@@ -39,7 +39,7 @@ export default function ReportHeader({
       className="rounded-xl border bg-background p-7 shadow-even-md"
       style={{ borderColor: "var(--border)" }}
     >
-      <div className="flex items-start justify-between gap-8">
+      <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:gap-8">
         {/* Report Information */}
         <div className="min-w-0">
           <div className="flex items-center gap-2.5">

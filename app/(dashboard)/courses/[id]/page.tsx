@@ -61,7 +61,7 @@ export default function CourseDetailsPage() {
   const isAdmin = mockViewer.role === "admin";
 
   return (
-    <div className="h-full overflow-y-auto p-8">
+    <div className="h-full overflow-y-auto p-4 sm:p-8">
       {/* Top Actions */}
       <div className="mb-6">
         <button

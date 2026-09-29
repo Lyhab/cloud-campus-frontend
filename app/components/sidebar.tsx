@@ -12,6 +12,7 @@ import {
   Bookmark,
   UploadCloud,
   ChevronsLeft,
+  X,
 } from "lucide-react";
 import type { User } from "../lib/types";
 
@@ -41,9 +42,15 @@ const studentNavItems = [
 
 interface SidebarProps {
   role: User["role"];
+  mobileOpen?: boolean;
+  onNavigate?: () => void;
 }
 
-export default function Sidebar({ role }: SidebarProps) {
+export default function Sidebar({
+  role,
+  mobileOpen = false,
+  onNavigate,
+}: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -64,9 +71,9 @@ export default function Sidebar({ role }: SidebarProps) {
 
   return (
     <aside
-      className={`flex h-screen flex-col border-r bg-background transition-[width] duration-300 ease-in-out ${
+      className={`fixed inset-y-0 left-0 z-50 flex h-dvh flex-col border-r bg-background transition-[transform,width] duration-300 ease-in-out lg:static lg:z-auto ${
         collapsed ? "w-20" : "w-64"
-      }`}
+      } ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       style={{ borderColor: "var(--border)" }}
     >
       {/* Logo */}
@@ -97,6 +104,14 @@ export default function Sidebar({ role }: SidebarProps) {
         >
           Cloud Campus
         </span>
+        <button
+          type="button"
+          onClick={onNavigate}
+          aria-label="Close navigation"
+          className="ml-auto flex size-10 cursor-pointer items-center justify-center rounded-lg text-(--muted) hover:bg-(--hover) lg:hidden"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       {/* Navigation */}
@@ -122,6 +137,7 @@ export default function Sidebar({ role }: SidebarProps) {
               <Link
                 key={item.label}
                 href={item.href}
+                onClick={onNavigate}
                 title={collapsed ? item.label : undefined}
                 onMouseEnter={() => setHoveredIndex(index)}
                 className="relative z-10 flex h-10 items-center rounded-lg px-3 text-[15px] transition-colors duration-200"
@@ -153,7 +169,7 @@ export default function Sidebar({ role }: SidebarProps) {
 
       {/* Collapse / Expand */}
       <div
-        className="shrink-0 border-t p-2.5"
+        className="hidden shrink-0 border-t p-2.5 lg:block"
         style={{ borderColor: "var(--border-light)" }}
       >
         <button

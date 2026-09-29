@@ -44,7 +44,8 @@ export default function Table<T extends { id: string | number }>({
 
   return (
     <div>
-      <table className="w-full border-collapse text-left">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[720px] border-collapse text-left">
         <thead>
           <tr className="border-b" style={{ borderColor: "var(--border)" }}>
             {columns.map((col) => (
@@ -100,10 +101,11 @@ export default function Table<T extends { id: string | number }>({
           )}
         </tbody>
       </table>
+      </div>
 
       {pagination && totalPages > 1 && (
         <div
-          className="flex items-center justify-between border-t px-6 py-4"
+          className="flex flex-col items-start justify-between gap-3 border-t px-4 py-4 sm:flex-row sm:items-center sm:px-6"
           style={{ borderColor: "var(--border)" }}
         >
           <span className="text-[13px]" style={{ color: "var(--muted)" }}>

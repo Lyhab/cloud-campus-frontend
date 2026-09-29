@@ -119,7 +119,7 @@ export default function ReportDetailsPage() {
     : "Unknown Course";
 
   return (
-    <div className="h-full overflow-y-auto p-8">
+    <div className="h-full overflow-y-auto p-4 sm:p-8">
       {/* Back */}
       <div className="mb-6">
         <button

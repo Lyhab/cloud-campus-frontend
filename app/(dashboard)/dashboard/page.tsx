@@ -145,7 +145,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="space-y-8 overflow-y-auto p-8 ">
+    <main className="space-y-6 overflow-y-auto p-4 sm:space-y-8 sm:p-8">
       {/* Header */}
       <div>
         <h1

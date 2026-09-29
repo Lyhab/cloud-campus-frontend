@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import AuthField from "../_components/auth-field";
+import { requestPasswordReset } from "@/app/lib/api/auth";
+import { useToast } from "@/app/components/ui/toast";
 
 type FormErrors = { email?: string };
 
@@ -18,20 +21,44 @@ function validateResetPassword(formData: FormData): FormErrors {
 }
 
 export default function ResetPasswordPage() {
+  const router = useRouter();
+  const toast = useToast();
   const [errors, setErrors] = useState<FormErrors>({});
+  const [formError, setFormError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const nextErrors = validateResetPassword(new FormData(event.currentTarget));
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const nextErrors = validateResetPassword(formData);
     setErrors(nextErrors);
+    setFormError("");
 
     if (nextErrors.email) {
-      const field = event.currentTarget.elements.namedItem("email");
+      const field = form.elements.namedItem("email");
       if (field instanceof HTMLElement) field.focus();
+      return;
     }
 
-    // Password recovery will be connected to the backend in a later step.
+    const email = String(formData.get("email")).trim();
+    setIsSubmitting(true);
+
+    try {
+      await requestPasswordReset(email);
+      toast.success("Verification code sent.");
+      router.push(`/verify-code?email=${encodeURIComponent(email)}`);
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Unable to send the reset code.",
+      );
+      toast.error("Unable to send the verification code.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -48,7 +75,7 @@ export default function ResetPasswordPage() {
             Reset your password
           </h1>
           <p className="mt-1.5 text-sm text-[#64748b] sm:text-base">
-            Enter your email and we will send you a reset link
+            Enter your email and we will send you a verification code
           </p>
         </header>
 
@@ -67,10 +94,17 @@ export default function ResetPasswordPage() {
 
           <button
             type="submit"
-            className="mt-1 flex h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#2563eb] px-4 text-base font-medium text-white shadow-sm transition hover:bg-[#1d4ed8] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#2563eb]/30 focus-visible:ring-offset-2 active:bg-[#1e40af]"
+            disabled={isSubmitting}
+            className="mt-1 flex h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#2563eb] px-4 text-base font-medium text-white shadow-sm transition hover:bg-[#1d4ed8] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#2563eb]/30 focus-visible:ring-offset-2 active:bg-[#1e40af] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Send Reset Link
+            {isSubmitting ? "Sending code..." : "Send Verification Code"}
           </button>
+
+          {formError && (
+            <p role="alert" className="text-center text-sm text-[#e53e3e]">
+              {formError}
+            </p>
+          )}
         </form>
       </section>
 

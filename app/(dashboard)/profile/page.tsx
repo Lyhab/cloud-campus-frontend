@@ -1,4 +1,9 @@
+"use client";
+
+import Image from "next/image";
+import { useRef, useState } from "react";
 import DashboardIcon from "../_components/dashboard-icon";
+import { useToast } from "@/app/components/ui/toast";
 import { courses } from "../../lib/data/courses";
 import { mockViewer } from "../../lib/data/mock-viewer";
 import { getResourcesUploadedByUser } from "../../lib/data/resources";
@@ -32,6 +37,56 @@ const statusLabel = mockViewer.status === "active" ? "Active" : "Disabled";
 const buttonClass = "rounded-lg border border-[#e2e8f0] bg-white px-4 py-2 text-sm font-medium text-[#334155] shadow-sm outline-none transition hover:bg-[#f8fafc] focus-visible:ring-2 focus-visible:ring-[#2563eb]";
 
 export default function ProfilePage() {
+  const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoPreview, setPhotoPreview] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+
+  async function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const supportedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!supportedTypes.includes(file.type)) {
+      toast.warning("Choose a JPG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.warning("Profile photos must be smaller than 5 MB.");
+      return;
+    }
+
+    const previousPreview = photoPreview;
+    const preview = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("Unable to read this image."));
+      reader.readAsDataURL(file);
+    }).catch((error: Error) => {
+      toast.error(error.message);
+      return "";
+    });
+    if (!preview) return;
+
+    setPhotoPreview(preview);
+    setIsUploading(true);
+    const progressToast = toast.info("Uploading profile photo...", 0);
+
+    try {
+      // Mock upload. Replace this delay with the file-storage API request.
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      toast.dismiss(progressToast);
+      toast.success("Profile photo updated.");
+    } catch {
+      setPhotoPreview(previousPreview);
+      toast.dismiss(progressToast);
+      toast.error("Photo upload failed. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-10">
       <header>
@@ -41,14 +96,41 @@ export default function ProfilePage() {
 
       <section className="mt-8 flex flex-col gap-5 rounded-2xl border border-[#e2e8f0] bg-white p-6 shadow-[0_2px_5px_rgba(15,23,42,0.08)] sm:flex-row sm:items-center sm:justify-between sm:p-8">
         <div className="flex items-center gap-5">
-          <div className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-[#3b82f6] text-2xl font-bold text-white sm:size-24 sm:text-3xl">{mockViewer.initials}</div>
+          <div className="relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#3b82f6] text-2xl font-bold text-white sm:size-24 sm:text-3xl">
+            {photoPreview ? (
+              <Image
+                src={photoPreview}
+                alt={`${mockViewer.name}'s profile`}
+                fill
+                unoptimized
+                className="object-cover"
+              />
+            ) : (
+              mockViewer.initials
+            )}
+          </div>
           <div>
             <h2 className="text-xl font-bold sm:text-2xl">{mockViewer.name}</h2>
             <p className="mt-1 text-sm text-[#64748b] sm:text-base">{mockViewer.email}</p>
             <span className="mt-2 inline-flex rounded-md bg-[#eff6ff] px-2.5 py-1 text-xs font-medium text-[#2563eb] sm:text-sm">{roleLabel}</span>
           </div>
         </div>
-        <button type="button" aria-disabled="true" title="Photo editing will be available after backend integration" className={buttonClass}>Change Photo</button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={handlePhotoChange}
+          className="sr-only"
+          aria-label="Choose profile photo"
+        />
+        <button
+          type="button"
+          disabled={isUploading}
+          onClick={() => fileInputRef.current?.click()}
+          className={`${buttonClass} disabled:cursor-not-allowed disabled:opacity-60`}
+        >
+          {isUploading ? "Uploading..." : "Change Photo"}
+        </button>
       </section>
 
       <section aria-label="Profile statistics" className="mt-6 grid gap-5 sm:grid-cols-3">

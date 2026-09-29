@@ -73,7 +73,7 @@ export default function Cards<T extends { id: string | number }>({
       {/* Pagination */}
       {pagination && totalPages > 1 && (
         <div
-          className="mt-4 flex items-center justify-between border-t px-6 py-4"
+          className="mt-4 flex flex-col items-start justify-between gap-3 border-t px-4 py-4 sm:flex-row sm:items-center sm:px-6"
           style={{ borderColor: "var(--border)" }}
         >
           <span className="text-[13px]" style={{ color: "var(--muted)" }}>

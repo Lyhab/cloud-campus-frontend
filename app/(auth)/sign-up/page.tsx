@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import AuthField from "../_components/auth-field";
+import { register } from "@/app/lib/api/auth";
+import { useToast } from "@/app/components/ui/toast";
 
 type FieldName =
   | "firstName"
@@ -31,7 +34,11 @@ function validateSignUp(formData: FormData): FormErrors {
     errors.email = "Enter a valid email address.";
   }
 
-  if (!password) errors.password = "Password is required.";
+  if (!password) {
+    errors.password = "Password is required.";
+  } else if (password.length < 8) {
+    errors.password = "Password must be at least 8 characters.";
+  }
 
   if (!confirmPassword) {
     errors.confirmPassword = "Confirm your password.";
@@ -43,7 +50,11 @@ function validateSignUp(formData: FormData): FormErrors {
 }
 
 export default function SignUpPage() {
+  const router = useRouter();
+  const toast = useToast();
   const [errors, setErrors] = useState<FormErrors>({});
+  const [formError, setFormError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function clearError(field: FieldName) {
     setErrors((current) => {
@@ -55,20 +66,43 @@ export default function SignUpPage() {
     });
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const nextErrors = validateSignUp(new FormData(event.currentTarget));
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const nextErrors = validateSignUp(formData);
     setErrors(nextErrors);
+    setFormError("");
 
     if (Object.keys(nextErrors).length > 0) {
       const firstInvalidField = Object.keys(nextErrors)[0] as FieldName;
-      const field = event.currentTarget.elements.namedItem(firstInvalidField);
+      const field = form.elements.namedItem(firstInvalidField);
 
       if (field instanceof HTMLElement) field.focus();
+      return;
     }
 
-    // Registration will be connected to POST /auth/register in a later step.
+    setIsSubmitting(true);
+
+    try {
+      await register({
+        firstName: String(formData.get("firstName")).trim(),
+        middleName: String(formData.get("middleName") ?? "").trim() || undefined,
+        lastName: String(formData.get("lastName")).trim(),
+        email: String(formData.get("email")).trim(),
+        password: String(formData.get("password")),
+      });
+      toast.success("Account created. You can now sign in.");
+      router.replace("/sign-in?registered=1");
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Unable to create account.",
+      );
+      toast.error("Unable to create account.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -150,10 +184,17 @@ export default function SignUpPage() {
 
           <button
             type="submit"
-            className="mt-1 flex h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#2563eb] px-4 text-base font-medium text-white shadow-sm transition hover:bg-[#1d4ed8] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#2563eb]/30 focus-visible:ring-offset-2 active:bg-[#1e40af]"
+            disabled={isSubmitting}
+            className="mt-1 flex h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#2563eb] px-4 text-base font-medium text-white shadow-sm transition hover:bg-[#1d4ed8] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#2563eb]/30 focus-visible:ring-offset-2 active:bg-[#1e40af] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Create Account
+            {isSubmitting ? "Creating account..." : "Create Account"}
           </button>
+
+          {formError && (
+            <p role="alert" className="text-center text-sm text-[#e53e3e]">
+              {formError}
+            </p>
+          )}
         </form>
       </section>
 

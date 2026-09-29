@@ -48,11 +48,7 @@ export default function Home() {
       <main>
         <section className="px-5 pb-20 pt-20 text-center sm:px-8 sm:pb-24 sm:pt-28 lg:pb-28 lg:pt-32">
           <div className={`mx-auto max-w-4xl ${styles.heroContent}`}>
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#bfdbfe] bg-[#eff6ff] px-4 py-2 text-sm font-medium text-[#2563eb]">
-              <span className="size-2 rounded-full bg-[#3b82f6]" />
-              Open to all enrolled students
-            </div>
-            <h1 className="mt-10 text-5xl font-bold leading-[1.05] tracking-[-0.045em] sm:text-6xl lg:text-[76px]">
+            <h1 className="mt-[76px] text-5xl font-bold leading-[1.05] tracking-[-0.045em] sm:text-6xl lg:text-[76px]">
               Share knowledge.<span className="mt-1 block text-[#2563eb]">Learn together.</span>
             </h1>
             <p className="mx-auto mt-8 max-w-2xl text-lg leading-8 text-[#64748b] sm:text-xl">

@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import AuthField from "../_components/auth-field";
+import { login } from "@/app/lib/api/auth";
+import { useToast } from "@/app/components/ui/toast";
 
 type FieldName = "email" | "password";
 type FormErrors = Partial<Record<FieldName, string>>;
@@ -24,7 +27,11 @@ function validateSignIn(formData: FormData): FormErrors {
 }
 
 export default function SignInPage() {
+  const router = useRouter();
+  const toast = useToast();
   const [errors, setErrors] = useState<FormErrors>({});
+  const [formError, setFormError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function clearError(field: FieldName) {
     setErrors((current) => {
@@ -36,20 +43,41 @@ export default function SignInPage() {
     });
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const nextErrors = validateSignIn(new FormData(event.currentTarget));
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const nextErrors = validateSignIn(formData);
     setErrors(nextErrors);
+    setFormError("");
 
     if (Object.keys(nextErrors).length > 0) {
       const firstInvalidField = Object.keys(nextErrors)[0] as FieldName;
-      const field = event.currentTarget.elements.namedItem(firstInvalidField);
+      const field = form.elements.namedItem(firstInvalidField);
 
       if (field instanceof HTMLElement) field.focus();
+      return;
     }
 
-    // Sign in will be connected to POST /auth/login in a later step.
+    setIsSubmitting(true);
+
+    try {
+      await login({
+        email: String(formData.get("email")).trim(),
+        password: String(formData.get("password")),
+        rememberMe: formData.get("rememberMe") === "on",
+      });
+      toast.success("Signed in successfully.");
+      router.replace("/dashboard");
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Unable to sign in.",
+      );
+      toast.error("Unable to sign in.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -116,16 +144,23 @@ export default function SignInPage() {
 
           <button
             type="submit"
-            className="mt-1 flex h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#2563eb] px-4 text-base font-medium text-white shadow-sm transition hover:bg-[#1d4ed8] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#2563eb]/30 focus-visible:ring-offset-2 active:bg-[#1e40af]"
+            disabled={isSubmitting}
+            className="mt-1 flex h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#2563eb] px-4 text-base font-medium text-white shadow-sm transition hover:bg-[#1d4ed8] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#2563eb]/30 focus-visible:ring-offset-2 active:bg-[#1e40af] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Sign In
+            {isSubmitting ? "Signing in..." : "Sign In"}
           </button>
 
+          {formError && (
+            <p role="alert" className="text-center text-sm text-[#e53e3e]">
+              {formError}
+            </p>
+          )}
+
           <Link
-            href="/verify-code"
+            href="/reset-password"
             className="flex justify-center rounded-md text-sm font-medium text-[#2563eb] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2"
           >
-            Use a verification code
+            Use a password reset code
           </Link>
         </form>
       </section>
