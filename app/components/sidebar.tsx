@@ -13,47 +13,81 @@ import {
   UploadCloud,
   ChevronsLeft,
 } from "lucide-react";
-import type { User } from "../lib/types";
+import { useAuth } from "../context/AuthContext";
 
 const adminNavItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Courses", href: "/courses", icon: BookOpen },
-  { label: "Resources", href: "/resources", icon: FileText },
-  { label: "Users", href: "/users", icon: Users },
-  { label: "Reports", href: "/reports", icon: BarChart3 },
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    label: "Courses",
+    href: "/courses",
+    icon: BookOpen,
+  },
+  {
+    label: "Resources",
+    href: "/resources",
+    icon: FileText,
+  },
+  {
+    label: "Users",
+    href: "/users",
+    icon: Users,
+  },
+  {
+    label: "Reports",
+    href: "/reports",
+    icon: BarChart3,
+  },
 ];
 
 const studentNavItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Courses", href: "/courses", icon: BookOpen },
-  { label: "Resources", href: "/resources", icon: FileText },
   {
-    label: "Bookmarks",
-    href: "/resources?filter=bookmarked",
-    icon: Bookmark,
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
   },
   {
-    label: "My Uploads",
-    href: "/resources?filter=my-uploads",
-    icon: UploadCloud,
+    label: "Courses",
+    href: "/courses",
+    icon: BookOpen,
+  },
+  {
+    label: "Resources",
+    href: "/resources",
+    icon: FileText,
   },
 ];
 
-interface SidebarProps {
-  role: User["role"];
-}
+const guestNavItems = [
+  {
+    label: "Courses",
+    href: "/courses",
+    icon: BookOpen,
+  },
+  {
+    label: "Resources",
+    href: "/resources",
+    icon: FileText,
+  },
+];
 
-export default function Sidebar({ role }: SidebarProps) {
+export default function Sidebar() {
   const pathname = usePathname();
+  const { user, isLoading } = useAuth();
+
   const [collapsed, setCollapsed] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  let navItems;
-  if (role === "admin") {
-    navItems = adminNavItems;
-  } else {
-    navItems = studentNavItems;
-  }
+  const navItems = isLoading
+    ? []
+    : !user
+      ? guestNavItems
+      : user.role === "admin"
+        ? adminNavItems
+        : studentNavItems;
 
   const activeIndex = navItems.findIndex(
     (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
@@ -105,14 +139,15 @@ export default function Sidebar({ role }: SidebarProps) {
         onMouseLeave={() => setHoveredIndex(null)}
       >
         <div className="relative space-y-1">
-          {/* Animated active/hover background */}
-          <div
-            className="pointer-events-none absolute left-0 right-0 h-10 rounded-lg transition-transform duration-300 ease-out"
-            style={{
-              backgroundColor: "var(--primary-light)",
-              transform: `translateY(${backgroundIndex * 44}px)`,
-            }}
-          />
+          {navItems.length > 0 && (
+            <div
+              className="pointer-events-none absolute left-0 right-0 h-10 rounded-lg transition-transform duration-300 ease-out"
+              style={{
+                backgroundColor: "var(--primary-light)",
+                transform: `translateY(${backgroundIndex * 44}px)`,
+              }}
+            />
+          )}
 
           {navItems.map((item, index) => {
             const Icon = item.icon;
@@ -160,7 +195,7 @@ export default function Sidebar({ role }: SidebarProps) {
           type="button"
           onClick={() => setCollapsed((value) => !value)}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="cursor-pointer flex h-10 w-full items-center rounded-lg border border-transparent px-3 transition-colors duration-200 hover:bg-(--hover) hover:border-(--border)"
+          className="flex h-10 w-full cursor-pointer items-center rounded-lg border border-transparent px-3 transition-colors duration-200 hover:border-(--border) hover:bg-(--hover)"
           style={{ color: "var(--muted)" }}
         >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">

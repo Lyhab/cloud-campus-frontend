@@ -12,6 +12,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { logout } from "../lib/api/auth";
+import { useAuth } from "../context/AuthContext";
 
 interface HeaderProps {
   name?: string;
@@ -25,6 +26,7 @@ export default function Header({
   hasNotifications = false,
 }: HeaderProps) {
   const router = useRouter();
+  const { isAuthenticated, clearUser } = useAuth();
 
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -52,15 +54,12 @@ export default function Header({
 
     try {
       await logout();
-
-      router.push("/");
-      router.refresh();
     } catch (error) {
       console.error("Logout failed:", error);
-
+    } finally {
+      clearUser();
       router.push("/");
       router.refresh();
-    } finally {
       setIsLoggingOut(false);
     }
   }
@@ -147,41 +146,55 @@ export default function Header({
               className="absolute right-0 top-full z-20 mt-2 w-48 rounded-lg border bg-background py-1.5 shadow-lg"
               style={{ borderColor: "var(--border)" }}
             >
-              <Link
-                href="/profile"
-                className="flex cursor-pointer items-center gap-2.5 px-3.5 py-2 text-[14px] transition-colors duration-200 hover:bg-(--hover)"
-                style={{ color: "var(--foreground)" }}
-              >
-                <User size={16} strokeWidth={1.7} />
-                View Profile
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <Link
+                    href="/profile"
+                    className="flex cursor-pointer items-center gap-2.5 px-3.5 py-2 text-[14px] transition-colors duration-200 hover:bg-(--hover)"
+                    style={{ color: "var(--foreground)" }}
+                  >
+                    <User size={16} strokeWidth={1.7} />
+                    View Profile
+                  </Link>
 
-              <button
-                type="button"
-                disabled
-                title="Settings are not available yet"
-                className="flex w-full cursor-not-allowed items-center gap-2.5 px-3.5 py-2 text-left text-[14px] opacity-50"
-                style={{ color: "var(--foreground)" }}
-              >
-                <Settings size={16} strokeWidth={1.7} />
-                Settings
-              </button>
+                  <button
+                    type="button"
+                    disabled
+                    title="Settings are not available yet"
+                    className="flex w-full cursor-not-allowed items-center gap-2.5 px-3.5 py-2 text-left text-[14px] opacity-50"
+                    style={{ color: "var(--foreground)" }}
+                  >
+                    <Settings size={16} strokeWidth={1.7} />
+                    Settings
+                  </button>
 
-              <div
-                className="my-1 border-t"
-                style={{ borderColor: "var(--border-light)" }}
-              />
+                  <div
+                    className="my-1 border-t"
+                    style={{ borderColor: "var(--border-light)" }}
+                  />
 
-              <button
-                type="button"
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-left text-[14px] text-(--danger) transition-colors duration-200 hover:bg-(--hover-danger) disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <LogOut size={16} strokeWidth={1.7} />
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-left text-[14px] text-(--danger) transition-colors duration-200 hover:bg-(--hover-danger) disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <LogOut size={16} strokeWidth={1.7} />
 
-                {isLoggingOut ? "Logging out..." : "Log out"}
-              </button>
+                    {isLoggingOut ? "Logging out..." : "Log out"}
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/sign-in"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2.5 px-3.5 py-2 text-[14px] transition-colors duration-200 hover:bg-(--hover)"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  <User size={16} strokeWidth={1.7} />
+                  Sign in
+                </Link>
+              )}
             </div>
           )}
         </div>

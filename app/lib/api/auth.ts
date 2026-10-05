@@ -37,9 +37,18 @@ export interface MessageResponse {
   message: string;
 }
 
-// TODO: match what authService.getMe() returns
 export interface CurrentUser {
-  [key: string]: unknown;
+  id: string;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  email: string;
+  role: "student" | "admin";
+  status: "active" | "pending" | "inactive";
+  profilePhotoUrl: string | null;
+  joinedAt: string;
+  updatedAt: string;
+  emailVerified: boolean;
 }
 
 export async function register(

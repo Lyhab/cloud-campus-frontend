@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AuthField from "../_components/auth-field";
 import { login, resendConfirmationCode } from "../../lib/api/auth";
+import { useAuth } from "../../context/AuthContext";
 
 // Must match the message returned by the backend login endpoint.
 const UNCONFIRMED_MESSAGE = "Please confirm your email before signing in.";
@@ -23,13 +24,17 @@ function validateSignIn(formData: FormData): FormErrors {
     errors.email = "Enter a valid email address.";
   }
 
-  if (!password) errors.password = "Password is required.";
+  if (!password) {
+    errors.password = "Password is required.";
+  }
 
   return errors;
 }
 
 export default function SignInPage() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
+
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,14 +56,19 @@ export default function SignInPage() {
     const formData = new FormData(form);
 
     const nextErrors = validateSignIn(formData);
+
     setErrors(nextErrors);
     setSubmitError("");
 
     if (Object.keys(nextErrors).length > 0) {
       const firstInvalidField = Object.keys(nextErrors)[0] as FieldName;
+
       const field = form.elements.namedItem(firstInvalidField);
 
-      if (field instanceof HTMLElement) field.focus();
+      if (field instanceof HTMLElement) {
+        field.focus();
+      }
+
       return;
     }
 
@@ -73,7 +83,10 @@ export default function SignInPage() {
         rememberMe: formData.get("rememberMe") === "on",
       });
 
-      router.push("/resources");
+      // Load the newly authenticated user into AuthContext.
+      await refreshUser();
+
+      router.push("/dashboard");
       router.refresh();
     } catch (error) {
       const message =
@@ -109,6 +122,7 @@ export default function SignInPage() {
           >
             Welcome back
           </h1>
+
           <p className="mt-1.5 text-sm text-[#64748b] sm:text-base">
             Sign in to your Cloud Campus account
           </p>
@@ -133,6 +147,7 @@ export default function SignInPage() {
             error={errors.email}
             onChange={() => clearError("email")}
           />
+
           <AuthField
             id="password"
             label="Password"
@@ -150,22 +165,6 @@ export default function SignInPage() {
               </Link>
             }
           />
-
-          <div className="flex items-center">
-            <input
-              id="rememberMe"
-              name="rememberMe"
-              type="checkbox"
-              autoComplete="off"
-              className="size-4 cursor-pointer rounded border-[#94a3b8] accent-[#2563eb]"
-            />
-            <label
-              htmlFor="rememberMe"
-              className="ml-2.5 cursor-pointer text-sm text-[#475569] sm:text-base"
-            >
-              Remember me for 30 days
-            </label>
-          </div>
 
           <button
             type="submit"
