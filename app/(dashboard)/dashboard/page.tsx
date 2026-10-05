@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
@@ -19,116 +20,123 @@ import DashboardNewUsers from "@/app/components/pages/dashboard/dashboard-new-us
 import DashboardPendingReports from "@/app/components/pages/dashboard/dashboard-pending-reports";
 import DashboardRecentResources from "@/app/components/pages/dashboard/dashboard-recent-resources";
 
-import { courses } from "@/app/lib/data/courses";
-import { resources } from "@/app/lib/data/resources";
-import { users } from "@/app/lib/data/users";
-import { reports } from "@/app/lib/data/reports";
-import { mockViewer } from "@/app/lib/data/mock-viewer";
+import { useAuth } from "@/app/context/AuthContext";
+
+import {
+  getDashboardStats,
+  getUploadStats,
+  getRecentResources,
+  getNewUsers,
+  getPendingReports,
+  getMyCourses,
+  getDashboardResources,
+  type DashboardStats,
+  type DashboardAdminStats,
+  type DashboardStudentStats,
+  type UploadStatsItem,
+  type RecentResource,
+  type NewUser,
+  type PendingReport,
+  type MyCourse,
+  type DashboardResource,
+} from "@/app/lib/api/dashboard";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
 
-  const isAdmin = mockViewer.role === "admin";
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [uploadStats, setUploadStats] = useState<UploadStatsItem[]>([]);
+  const [recentResources, setRecentResources] = useState<RecentResource[]>([]);
+  const [newUsers, setNewUsers] = useState<NewUser[]>([]);
+  const [pendingReports, setPendingReports] = useState<PendingReport[]>([]);
+  const [myCourses, setMyCourses] = useState<MyCourse[]>([]);
+  const [popularResources, setPopularResources] = useState<DashboardResource[]>(
+    [],
+  );
 
-  const recentUploads = resources.slice(0, 5).map((resource) => {
-    const uploader = users.find((user) => user.id === resource.uploadedBy);
+  const [isLoading, setIsLoading] = useState(true);
 
-    const course = courses.find((course) => course.id === resource.courseId);
+  useEffect(() => {
+    if (authLoading) {
+      return;
+    }
 
-    return {
-      id: resource.id,
-      title: resource.title,
-      course: course ? `${course.code} · ${course.name}` : "Unknown Course",
-      type: resource.fileType.toUpperCase(),
-      uploadedBy: uploader?.name ?? "Unknown User",
-      date: resource.uploadedAt,
-    };
-  });
+    if (!user) {
+      router.replace("/resources");
+      return;
+    }
 
-  const newUsers = [...users]
-    .sort(
-      (a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime(),
-    )
-    .slice(0, 5)
-    .map((user) => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      joinedAt: user.joinedAt,
-    }));
+    async function loadDashboard() {
+      try {
+        setIsLoading(true);
 
-  const pendingReports = reports
-    .filter((report) => report.status === "pending")
-    .slice(0, 5)
-    .map((report) => {
-      const resource = resources.find(
-        (resource) => resource.id === report.resourceId,
-      );
+        if (user?.role === "admin") {
+          const [
+            dashboardStats,
+            resourceUploads,
+            recentResourceData,
+            newUserData,
+            pendingReportData,
+          ] = await Promise.all([
+            getDashboardStats(),
+            getUploadStats({
+              period: "6months",
+            }),
+            getRecentResources({
+              limit: 5,
+              sort: "newest",
+            }),
+            getNewUsers({
+              limit: 5,
+              sort: "newest",
+            }),
+            getPendingReports({
+              limit: 5,
+              sort: "oldest",
+              status: "pending",
+            }),
+          ]);
 
-      const reporter = users.find((user) => user.id === report.reporterId);
+          setStats(dashboardStats);
+          setUploadStats(resourceUploads);
+          setRecentResources(recentResourceData);
+          setNewUsers(newUserData);
+          setPendingReports(pendingReportData);
+        } else {
+          const [
+            dashboardStats,
+            courses,
+            popularResourceData,
+            recentResourceData,
+          ] = await Promise.all([
+            getDashboardStats(),
+            getMyCourses(),
+            getDashboardResources({
+              limit: 3,
+              minRatingCount: 5,
+              sort: "rating",
+            }),
+            getRecentResources({
+              limit: 5,
+              sort: "newest",
+            }),
+          ]);
 
-      return {
-        id: report.id,
-        resourceTitle: resource?.title ?? "Unknown Resource",
-        reporter: reporter?.name ?? "Unknown User",
-        reason: report.reason,
-        date: report.date,
-      };
-    });
+          setStats(dashboardStats);
+          setMyCourses(courses);
+          setPopularResources(popularResourceData);
+          setRecentResources(recentResourceData);
+        }
+      } catch (error) {
+        console.error("Failed to load dashboard:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
 
-  const recentResources = resources.slice(0, 5).map((resource) => {
-    const uploader = users.find((user) => user.id === resource.uploadedBy);
-
-    const course = courses.find((course) => course.id === resource.courseId);
-
-    return {
-      id: resource.id,
-      title: resource.title,
-      course: course ? `${course.code} · ${course.name}` : "Unknown Course",
-      type: resource.fileType.toUpperCase(),
-      uploadedBy: uploader?.name ?? "Unknown User",
-      date: resource.uploadedAt,
-    };
-  });
-
-  const popularResources = [...resources]
-    .sort((a, b) => b.downloads - a.downloads)
-    .slice(0, 5)
-    .map((resource) => {
-      const course = courses.find((course) => course.id === resource.courseId);
-
-      const uploader = users.find((user) => user.id === resource.uploadedBy);
-
-      return {
-        id: resource.id,
-        title: resource.title,
-        type: resource.fileType.toUpperCase(),
-        course: course ? `${course.code} · ${course.name}` : "Unknown Course",
-        uploadedBy: uploader?.name ?? "Unknown User",
-        downloads: resource.downloads,
-        rating: resource.rating,
-      };
-    });
-
-  const studentCourses = courses
-    .filter((course) => mockViewer.courseIds.includes(course.id))
-    .map((course) => ({
-      code: course.code,
-      name: course.name,
-      description: course.description,
-      resourceCount: resources.filter(
-        (resource) => resource.courseId === course.id,
-      ).length,
-    }));
-
-  const uploadsByMonth = [
-    { label: "Jan", value: 12 },
-    { label: "Feb", value: 18 },
-    { label: "Mar", value: 15 },
-    { label: "Apr", value: 24 },
-    { label: "May", value: 21 },
-    { label: "Jun", value: 29 },
-  ];
+    void loadDashboard();
+  }, [authLoading, user, router]);
 
   function getGreeting() {
     const hour = new Date().getHours();
@@ -144,15 +152,45 @@ export default function DashboardPage() {
     return "Good evening";
   }
 
+  if (authLoading || isLoading) {
+    return (
+      <main className="flex min-h-full items-center justify-center">
+        <p className="text-[14px]" style={{ color: "var(--muted)" }}>
+          Loading dashboard...
+        </p>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  if (!stats) {
+    return (
+      <main className="flex min-h-full items-center justify-center">
+        <p className="text-[14px]" style={{ color: "var(--muted)" }}>
+          Unable to load dashboard.
+        </p>
+      </main>
+    );
+  }
+
+  const isAdmin = user.role === "admin";
+
+  const adminStats = isAdmin ? (stats as DashboardAdminStats) : null;
+
+  const studentStats = !isAdmin ? (stats as DashboardStudentStats) : null;
+
   return (
-    <main className="space-y-8 overflow-y-auto p-8 ">
+    <main className="space-y-8 overflow-y-auto p-8">
       {/* Header */}
       <div>
         <h1
           className="text-2xl font-bold"
           style={{ color: "var(--foreground)" }}
         >
-          {getGreeting()}, {mockViewer.name}
+          {getGreeting()}, {user.firstName}
         </h1>
 
         <p className="mt-1 text-[14px]" style={{ color: "var(--muted)" }}>
@@ -162,36 +200,34 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {isAdmin ? (
+      {isAdmin && adminStats ? (
         <>
           {/* Admin Statistics */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
             <DashboardStatisticCard
               label="Total Users"
-              value={users.length}
+              value={adminStats.totalUsers}
               icon={Users}
               onClick={() => router.push("/users")}
             />
 
             <DashboardStatisticCard
               label="Total Courses"
-              value={courses.length}
+              value={adminStats.totalCourses}
               icon={BookOpen}
               onClick={() => router.push("/courses")}
             />
 
             <DashboardStatisticCard
               label="Total Resources"
-              value={resources.length}
+              value={adminStats.totalResources}
               icon={FileText}
               onClick={() => router.push("/resources")}
             />
 
             <DashboardStatisticCard
               label="Pending Reports"
-              value={
-                reports.filter((report) => report.status === "pending").length
-              }
+              value={adminStats.pendingReports}
               icon={Flag}
               onClick={() => router.push("/reports")}
             />
@@ -201,11 +237,12 @@ export default function DashboardPage() {
           <DashboardBarGraph
             title="Resource Uploads"
             description="Number of resources uploaded over time."
-            data={uploadsByMonth}
+            data={uploadStats}
           />
 
           {/* Recent Uploads + New Users */}
           <div className="grid grid-cols-1 items-stretch gap-10 xl:grid-cols-2">
+            {/* Recent Uploads */}
             <section className="flex h-full flex-col">
               <div className="mb-5 flex items-center justify-between">
                 <div>
@@ -235,12 +272,26 @@ export default function DashboardPage() {
 
               <div className="min-h-0 flex-1">
                 <DashboardRecentUploads
-                  uploads={recentUploads}
+                  uploads={recentResources.map((resource) => ({
+                    id: resource.id,
+                    title: resource.title,
+                    course: `${resource.course.code} · ${resource.course.name}`,
+                    type: resource.fileType.toUpperCase(),
+                    uploadedBy: [
+                      resource.uploadedBy.firstName,
+                      resource.uploadedBy.middleName,
+                      resource.uploadedBy.lastName,
+                    ]
+                      .filter(Boolean)
+                      .join(" "),
+                    date: resource.uploadedAt,
+                  }))}
                   onOpen={(id) => router.push(`/resources/${id}`)}
                 />
               </div>
             </section>
 
+            {/* New Users */}
             <section className="flex h-full flex-col">
               <div className="mb-5 flex items-center justify-between">
                 <div>
@@ -270,7 +321,18 @@ export default function DashboardPage() {
 
               <div className="min-h-0 flex-1">
                 <DashboardNewUsers
-                  users={newUsers}
+                  users={newUsers.map((newUser) => ({
+                    id: newUser.id,
+                    name: [
+                      newUser.firstName,
+                      newUser.middleName,
+                      newUser.lastName,
+                    ]
+                      .filter(Boolean)
+                      .join(" "),
+                    email: newUser.email,
+                    joinedAt: newUser.joinedAt,
+                  }))}
                   onOpen={(id) => router.push(`/profile/${id}`)}
                 />
               </div>
@@ -306,45 +368,51 @@ export default function DashboardPage() {
             </div>
 
             <DashboardPendingReports
-              reports={pendingReports}
+              reports={pendingReports.map((report) => ({
+                id: report.id,
+                resourceTitle: report.resource.title,
+                reporter: [
+                  report.reporter.firstName,
+                  report.reporter.middleName,
+                  report.reporter.lastName,
+                ]
+                  .filter(Boolean)
+                  .join(" "),
+                reason: report.reason,
+                date: report.date,
+              }))}
               onOpen={(id) => router.push(`/reports/${id}`)}
             />
           </section>
         </>
-      ) : (
+      ) : studentStats ? (
         <>
           {/* Student Statistics */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
             <DashboardStatisticCard
               label="My Courses"
-              value={studentCourses.length}
+              value={studentStats.myCourses}
               icon={BookOpen}
               onClick={() => router.push("/courses?filter=my-courses")}
             />
 
             <DashboardStatisticCard
               label="My Uploads"
-              value={
-                resources.filter(
-                  (resource) => resource.uploadedBy === mockViewer.id,
-                ).length
-              }
+              value={studentStats.myUploads}
               icon={Upload}
               onClick={() => router.push("/resources?filter=my-uploads")}
             />
 
             <DashboardStatisticCard
               label="Bookmarked"
-              value={
-                mockViewer.bookmarkedResourceIds.length
-              }
+              value={studentStats.bookmarked}
               icon={Bookmark}
               onClick={() => router.push("/resources?filter=bookmarked")}
             />
 
             <DashboardStatisticCard
               label="Total Resources"
-              value={resources.length}
+              value={studentStats.totalResources}
               icon={FileText}
               onClick={() => router.push("/resources")}
             />
@@ -372,28 +440,23 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => router.push("/courses?filter=my-courses")}
-                className="cursor-pointer text-[14px] text-(--primary) font-semibold transition-opacity hover:opacity-70"
+                className="cursor-pointer text-[14px] font-semibold text-(--primary) transition-opacity hover:opacity-70"
               >
                 View all
               </button>
             </div>
 
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              {studentCourses.map((course) => {
-                const courseData = courses.find(
-                  (item) => item.code === course.code,
-                );
-
-                return (
-                  <DashboardCoursesCard
-                    key={course.code}
-                    {...course}
-                    onOpen={() =>
-                      router.push(`/courses/${courseData?.id ?? course.code}`)
-                    }
-                  />
-                );
-              })}
+              {myCourses.map((course) => (
+                <DashboardCoursesCard
+                  key={course.id}
+                  code={course.code}
+                  name={course.name}
+                  description={course.description}
+                  resourceCount={course.resourceCount}
+                  onOpen={() => router.push(`/courses/${course.id}`)}
+                />
+              ))}
             </div>
           </section>
 
@@ -426,15 +489,22 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {popularResources.slice(0, 3).map((resource) => (
+              {popularResources.map((resource) => (
                 <DashboardPopularResourcesCard
                   key={resource.id}
                   title={resource.title}
-                  type={resource.type}
-                  course={resource.course}
-                  uploadedBy={resource.uploadedBy}
+                  type={resource.fileType.toUpperCase()}
+                  course={`${resource.course.code} · ${resource.course.name}`}
+                  uploadedBy={[
+                    resource.uploadedBy.firstName,
+                    resource.uploadedBy.middleName,
+                    resource.uploadedBy.lastName,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                   downloads={resource.downloads}
                   rating={resource.rating}
+                  ratingCount={resource.ratingCount}
                   onOpen={() => router.push(`/resources/${resource.id}`)}
                 />
               ))}
@@ -470,12 +540,25 @@ export default function DashboardPage() {
             </div>
 
             <DashboardRecentResources
-              resources={recentResources}
+              resources={recentResources.map((resource) => ({
+                id: resource.id,
+                title: resource.title,
+                course: `${resource.course.code} · ${resource.course.name}`,
+                type: resource.fileType.toUpperCase(),
+                uploadedBy: [
+                  resource.uploadedBy.firstName,
+                  resource.uploadedBy.middleName,
+                  resource.uploadedBy.lastName,
+                ]
+                  .filter(Boolean)
+                  .join(" "),
+                date: resource.uploadedAt,
+              }))}
               onOpen={(id) => router.push(`/resources/${id}`)}
             />
           </section>
         </>
-      )}
+      ) : null}
     </main>
   );
 }

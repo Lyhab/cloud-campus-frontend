@@ -1,5 +1,6 @@
 import { Download } from "lucide-react";
-import { getFileTypeBadgeClass } from "@/app/lib/get-file-type-badge-class"; // adjust import path to wherever this actually lives
+import { getFileTypeBadgeClass } from "@/app/lib/get-file-type-badge-class";
+import { formatDateTime } from "@/app/lib/format-date";
 
 interface DashboardRecentUploadsProps {
   uploads: {
@@ -80,14 +81,14 @@ export default function DashboardRecentUploads({
 
               {/* Date */}
               <span
-                className="w-32.5 shrink-0 text-right text-[13px]"
+                className="w-40 shrink-0 text-right text-[13px]"
                 style={{ color: "var(--muted-light)" }}
               >
-                {upload.date}
+                {formatDateTime(upload.date)}
               </span>
 
               {/* Download */}
-              <span className="w-15 shrink-0 text-right">
+              <span className="w-10 shrink-0 text-right">
                 <Download
                   size={19}
                   strokeWidth={1.7}

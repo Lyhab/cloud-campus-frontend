@@ -1,5 +1,6 @@
 import { Download } from "lucide-react";
-import { getFileTypeBadgeClass } from "@/app/lib/get-file-type-badge-class"; // adjust import path to wherever this actually lives
+import { getFileTypeBadgeClass } from "@/app/lib/get-file-type-badge-class";
+import { formatDate } from "@/app/lib/format-date";
 
 interface DashboardRecentResourcesProps {
   resources: {
@@ -90,7 +91,7 @@ export default function DashboardRecentResources({
                     className="w-32.5 px-4 py-4 text-[13px] text-right"
                     style={{ color: "var(--muted-light)" }}
                   >
-                    {resource.date}
+                    {formatDate(resource.date)}
                   </td>
 
                   {/* Download */}

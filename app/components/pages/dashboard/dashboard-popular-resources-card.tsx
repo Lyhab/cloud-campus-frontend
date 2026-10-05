@@ -9,6 +9,7 @@ interface DashboardPopularResourcesCardProps {
   uploadedBy: string;
   downloads: number;
   rating: number;
+  ratingCount: number;
   onOpen: () => void;
 }
 
@@ -19,6 +20,7 @@ export default function DashboardPopularResourcesCard({
   uploadedBy,
   downloads,
   rating,
+  ratingCount,
   onOpen,
 }: DashboardPopularResourcesCardProps) {
   return (
@@ -83,7 +85,7 @@ export default function DashboardPopularResourcesCard({
           style={{ color: "#f59e0b" }}
         >
           <Star size={14} fill="currentColor" strokeWidth={1.5} />
-          {rating}
+          {rating} ({ratingCount})
         </div>
       </div>
     </div>

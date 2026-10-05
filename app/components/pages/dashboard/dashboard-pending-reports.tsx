@@ -1,4 +1,5 @@
 import { AlertTriangle } from "lucide-react";
+import { formatDateTime } from "@/app/lib/format-date";
 
 interface DashboardPendingReportsProps {
   reports: {
@@ -73,7 +74,7 @@ export default function DashboardPendingReports({
                 className="mt-1 text-[11px]"
                 style={{ color: "var(--muted-light)" }}
               >
-                {report.date}
+                {formatDateTime(report.date)}
               </p>
             </div>
           </button>

@@ -1,4 +1,5 @@
 import { User } from "lucide-react";
+import { formatDateTime } from "@/app/lib/format-date";
 
 interface DashboardNewUsersProps {
   users: {
@@ -70,7 +71,7 @@ export default function DashboardNewUsers({
               className="shrink-0 text-[12px]"
               style={{ color: "var(--muted-light)" }}
             >
-              {user.joinedAt}
+              {formatDateTime(user.joinedAt)}
             </span>
           </button>
         ))
