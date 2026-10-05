@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Search,
   Bell,
@@ -10,6 +11,7 @@ import {
   LogOut,
   ChevronDown,
 } from "lucide-react";
+import { logout } from "../lib/api/auth";
 
 interface HeaderProps {
   name?: string;
@@ -22,8 +24,12 @@ export default function Header({
   initials = "?",
   hasNotifications = false,
 }: HeaderProps) {
+  const router = useRouter();
+
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,9 +38,32 @@ export default function Header({
         setMenuOpen(false);
       }
     }
+
     document.addEventListener("mousedown", handleClickOutside);
+
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  async function handleLogout() {
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+    setMenuOpen(false);
+
+    try {
+      await logout();
+
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout failed:", error);
+
+      router.push("/");
+      router.refresh();
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }
 
   return (
     <header
@@ -49,13 +78,17 @@ export default function Header({
           className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
           style={{ color: "var(--muted)" }}
         />
+
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search anything..."
           className="h-10 w-full rounded-lg border bg-(--muted-background) pl-10 pr-4 text-[15px] outline-none transition-colors duration-200 focus:border-(--primary)"
-          style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+          style={{
+            borderColor: "var(--border)",
+            color: "var(--foreground)",
+          }}
         />
       </div>
 
@@ -65,10 +98,11 @@ export default function Header({
         <button
           type="button"
           title="Notifications"
-          className="cursor-pointer relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-200 hover:bg-(--hover)"
+          className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg transition-colors duration-200 hover:bg-(--hover)"
           style={{ color: "var(--muted)" }}
         >
           <Bell size={20} strokeWidth={1.7} />
+
           {hasNotifications && (
             <span
               className="absolute right-2 top-2 h-2 w-2 rounded-full"
@@ -82,7 +116,7 @@ export default function Header({
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="cursor-pointer flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-200 hover:bg-(--hover)"
+            className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-200 hover:bg-(--hover)"
           >
             <div
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-background"
@@ -90,16 +124,20 @@ export default function Header({
             >
               {initials}
             </div>
+
             <span
               className="whitespace-nowrap text-[15px] font-medium"
               style={{ color: "var(--foreground)" }}
             >
               {name}
             </span>
+
             <ChevronDown
               size={16}
               strokeWidth={1.7}
-              className={`transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`}
+              className={`transition-transform duration-200 ${
+                menuOpen ? "rotate-180" : ""
+              }`}
               style={{ color: "var(--muted)" }}
             />
           </button>
@@ -111,12 +149,13 @@ export default function Header({
             >
               <Link
                 href="/profile"
-                className="cursor-pointer flex items-center gap-2.5 px-3.5 py-2 text-[14px] transition-colors duration-200 hover:bg-(--hover)"
+                className="flex cursor-pointer items-center gap-2.5 px-3.5 py-2 text-[14px] transition-colors duration-200 hover:bg-(--hover)"
                 style={{ color: "var(--foreground)" }}
               >
                 <User size={16} strokeWidth={1.7} />
                 View Profile
               </Link>
+
               <button
                 type="button"
                 disabled
@@ -127,19 +166,21 @@ export default function Header({
                 <Settings size={16} strokeWidth={1.7} />
                 Settings
               </button>
+
               <div
                 className="my-1 border-t"
                 style={{ borderColor: "var(--border-light)" }}
               />
+
               <button
                 type="button"
-                onClick={() => {
-                  // TODO: wire up real logout (clear session/cookies, redirect)
-                }}
-                className="cursor-pointer flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[14px] transition-colors duration-200 hover:bg-(--hover-danger) text-(--danger)"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-left text-[14px] text-(--danger) transition-colors duration-200 hover:bg-(--hover-danger) disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <LogOut size={16} strokeWidth={1.7} />
-                Log out
+
+                {isLoggingOut ? "Logging out..." : "Log out"}
               </button>
             </div>
           )}

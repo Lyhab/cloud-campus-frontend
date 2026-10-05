@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AuthField from "../_components/auth-field";
+import { login, resendConfirmationCode } from "../../lib/api/auth";
+
+// Must match the message returned by the backend login endpoint.
+const UNCONFIRMED_MESSAGE = "Please confirm your email before signing in.";
 
 type FieldName = "email" | "password";
 type FormErrors = Partial<Record<FieldName, string>>;
@@ -24,7 +29,10 @@ function validateSignIn(formData: FormData): FormErrors {
 }
 
 export default function SignInPage() {
+  const router = useRouter();
   const [errors, setErrors] = useState<FormErrors>({});
+  const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function clearError(field: FieldName) {
     setErrors((current) => {
@@ -36,20 +44,56 @@ export default function SignInPage() {
     });
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const nextErrors = validateSignIn(new FormData(event.currentTarget));
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    const nextErrors = validateSignIn(formData);
     setErrors(nextErrors);
+    setSubmitError("");
 
     if (Object.keys(nextErrors).length > 0) {
       const firstInvalidField = Object.keys(nextErrors)[0] as FieldName;
-      const field = event.currentTarget.elements.namedItem(firstInvalidField);
+      const field = form.elements.namedItem(firstInvalidField);
 
       if (field instanceof HTMLElement) field.focus();
+      return;
     }
 
-    // Sign in will be connected to POST /auth/login in a later step.
+    const email = String(formData.get("email")).trim();
+
+    setIsSubmitting(true);
+
+    try {
+      await login({
+        email,
+        password: String(formData.get("password")),
+        rememberMe: formData.get("rememberMe") === "on",
+      });
+
+      router.push("/resources");
+      router.refresh();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Something went wrong.";
+
+      if (message === UNCONFIRMED_MESSAGE) {
+        // Send a fresh code (best effort), then go to the confirm page.
+        try {
+          await resendConfirmationCode({ email });
+        } catch {
+          // The confirm page has its own resend button.
+        }
+
+        router.push(`/confirm-email?email=${encodeURIComponent(email)}`);
+        return;
+      }
+
+      setSubmitError(message);
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -61,7 +105,7 @@ export default function SignInPage() {
         <header className="mb-8">
           <h1
             id="sign-in-heading"
-            className="text-2xl font-bold tracking-[-0.025em] text-[#0f172a] sm:text-[28px]"
+            className="text-2xl font-bold tracking-tight text-[#0f172a] sm:text-[28px]"
           >
             Welcome back
           </h1>
@@ -71,6 +115,15 @@ export default function SignInPage() {
         </header>
 
         <form noValidate onSubmit={handleSubmit} className="space-y-5">
+          {submitError && (
+            <div
+              role="alert"
+              className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              {submitError}
+            </div>
+          )}
+
           <AuthField
             id="email"
             label="Email address"
@@ -90,7 +143,7 @@ export default function SignInPage() {
             onChange={() => clearError("password")}
             labelAction={
               <Link
-                href="/reset-password"
+                href="/forgot-password"
                 className="text-sm font-normal text-[#2563eb] outline-none hover:underline focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2"
               >
                 Forgot password?
@@ -116,17 +169,11 @@ export default function SignInPage() {
 
           <button
             type="submit"
-            className="mt-1 flex h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#2563eb] px-4 text-base font-medium text-white shadow-sm transition hover:bg-[#1d4ed8] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#2563eb]/30 focus-visible:ring-offset-2 active:bg-[#1e40af]"
+            disabled={isSubmitting}
+            className="mt-1 flex h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#2563eb] px-4 text-base font-medium text-white shadow-sm transition hover:bg-[#1d4ed8] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#2563eb]/30 focus-visible:ring-offset-2 active:bg-[#1e40af] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Sign In
+            {isSubmitting ? "Signing in..." : "Sign In"}
           </button>
-
-          <Link
-            href="/verify-code"
-            className="flex justify-center rounded-md text-sm font-medium text-[#2563eb] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2"
-          >
-            Use a verification code
-          </Link>
         </form>
       </section>
 

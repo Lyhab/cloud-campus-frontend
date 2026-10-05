@@ -87,7 +87,7 @@ export default async function UserProfilePage({
       </Link>
 
       <header className="mt-6">
-        <h1 className="text-3xl font-bold tracking-[-0.025em] sm:text-4xl">
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
           User Profile
         </h1>
         <p className="mt-1.5 text-sm text-[#64748b] sm:text-base">
