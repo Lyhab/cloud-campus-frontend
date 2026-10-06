@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
 import {
   Search,
   Bell,
@@ -11,15 +12,113 @@ import {
   Settings,
   LogOut,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
 
 import { logout } from "../lib/api/auth";
+import { search, type SearchResponse } from "../lib/api/search";
 import { useAuth } from "../context/AuthContext";
+import { getFileTypeBadgeClass } from "@/app/lib/get-file-type-badge-class";
 
 interface HeaderProps {
   name?: string;
   initials?: string;
   hasNotifications?: boolean;
+}
+
+interface SearchItem {
+  key: string;
+  href: string;
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  badgeClass?: string;
+  badgeStyle?: "course";
+}
+
+interface SearchSection {
+  label: string;
+  items: SearchItem[];
+}
+
+const MIN_QUERY_LENGTH = 2;
+const RESULTS_PER_SECTION = 5;
+
+function getFullName(person: {
+  firstName: string;
+  middleName?: string | null;
+  lastName: string;
+}) {
+  return [person.firstName, person.middleName, person.lastName]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function buildSections(data: SearchResponse): SearchSection[] {
+  const sections: SearchSection[] = [
+    {
+      label: "Resources",
+      items: data.resources.map((resource) => ({
+        key: `resource-${resource.id}`,
+        href: `/resources/${resource.id}`,
+        title: resource.title,
+        subtitle: `${resource.course.code} ${resource.course.name}`,
+        badge: resource.fileType.toUpperCase(),
+        badgeClass: getFileTypeBadgeClass(resource.fileType),
+      })),
+    },
+
+    {
+      label: "Courses",
+      items: data.courses.map((course) => ({
+        key: `course-${course.id}`,
+        href: `/courses/${course.id}`,
+        title: course.name,
+        badge: course.code,
+        badgeStyle: "course" as const,
+      })),
+    },
+  ];
+
+  // Admin only
+  if (data.reports) {
+    sections.push({
+      label: "Reports",
+      items: data.reports.map((report) => ({
+        key: `report-${report.id}`,
+        href: `/reports/${report.id}`,
+        title: report.resource.title,
+        subtitle: report.reason,
+        badge: report.status.charAt(0).toUpperCase() + report.status.slice(1),
+        badgeClass:
+          report.status === "pending"
+            ? "bg-(--pending-light) text-(--pending)"
+            : report.status === "resolved"
+              ? "bg-(--success-light) text-(--success)"
+              : "bg-(--smoke) text-(--muted)",
+      })),
+    });
+  }
+
+  // Admin only
+  if (data.users) {
+    sections.push({
+      label: "Users",
+      items: data.users.map((u) => ({
+        key: `user-${u.id}`,
+        href: `/profile/${u.id}`,
+        title: `${u.firstName} ${u.lastName}`,
+        subtitle: u.email,
+        badge: u.role === "admin" ? "Admin" : "Student",
+        badgeClass:
+          u.role === "admin"
+            ? "bg-(--purple-light) text-(--purple)"
+            : "bg-(--primary-light) text-(--primary)",
+      })),
+    });
+  }
+
+  return sections.filter((section) => section.items.length > 0);
 }
 
 export default function Header({
@@ -31,16 +130,35 @@ export default function Header({
 
   const { user, isAuthenticated, clearUser } = useAuth();
 
-  const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const menuRef = useRef<HTMLDivElement>(null);
+  // Search state
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [results, setResults] = useState<SearchResponse | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
 
+  const menuRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  const trimmedQuery = debouncedQuery.trim();
+  const hasQuery = trimmedQuery.length >= MIN_QUERY_LENGTH;
+
+  // Close menus when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+
+      if (menuRef.current && !menuRef.current.contains(target)) {
         setMenuOpen(false);
+      }
+
+      if (searchRef.current && !searchRef.current.contains(target)) {
+        setSearchOpen(false);
       }
     }
 
@@ -48,6 +166,104 @@ export default function Header({
 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Debounce search by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Run search
+  useEffect(() => {
+    if (!isAuthenticated || !hasQuery) {
+      setResults(null);
+      setSearchLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function runSearch() {
+      try {
+        setSearchLoading(true);
+        setSearchError(null);
+
+        const response = await search({
+          q: trimmedQuery,
+          limit: RESULTS_PER_SECTION,
+        });
+
+        if (cancelled) return;
+
+        setResults(response);
+        setActiveIndex(-1);
+      } catch (err) {
+        if (cancelled) return;
+
+        setResults(null);
+        setSearchError(err instanceof Error ? err.message : "Search failed.");
+      } finally {
+        if (!cancelled) {
+          setSearchLoading(false);
+        }
+      }
+    }
+
+    void runSearch();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, hasQuery, trimmedQuery]);
+
+  const sections = useMemo(
+    () => (results ? buildSections(results) : []),
+    [results],
+  );
+
+  const flatItems = useMemo(
+    () => sections.flatMap((section) => section.items),
+    [sections],
+  );
+
+  function closeSearch() {
+    setSearchOpen(false);
+    setActiveIndex(-1);
+  }
+
+  function openResult(href: string) {
+    closeSearch();
+    setQuery("");
+    setDebouncedQuery("");
+    router.push(href);
+  }
+
+  function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Escape") {
+      closeSearch();
+      return;
+    }
+
+    if (flatItems.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+
+      setActiveIndex((index) => (index + 1) % flatItems.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+
+      setActiveIndex((index) =>
+        index <= 0 ? flatItems.length - 1 : index - 1,
+      );
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      e.preventDefault();
+      openResult(flatItems[activeIndex].href);
+    }
+  }
 
   async function handleLogout() {
     if (isLoggingOut) return;
@@ -80,32 +296,171 @@ export default function Header({
         .toUpperCase()
     : initials;
 
+  const showPanel = searchOpen && isAuthenticated && query.trim().length > 0;
+
+  let itemIndex = -1;
+
   return (
     <header
       className="flex h-16 w-full shrink-0 items-center justify-between border-b bg-background px-6"
       style={{ borderColor: "var(--border)" }}
     >
       {/* Search */}
-      <div className="relative w-full max-w-sm">
-        <Search
-          size={18}
-          strokeWidth={1.7}
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
-          style={{ color: "var(--muted)" }}
-        />
+      {isAuthenticated ? (
+        <div ref={searchRef} className="relative w-full max-w-sm">
+          <Search
+            size={18}
+            strokeWidth={1.7}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
+            style={{ color: "var(--muted)" }}
+          />
 
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search anything..."
-          className="h-10 w-full rounded-lg border bg-(--muted-background) pl-10 pr-4 text-[15px] outline-none transition-colors duration-200 focus:border-(--primary)"
-          style={{
-            borderColor: "var(--border)",
-            color: "var(--foreground)",
-          }}
-        />
-      </div>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setSearchOpen(true);
+            }}
+            onFocus={() => setSearchOpen(true)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Search anything..."
+            className="h-10 w-full rounded-lg border bg-(--muted-background) pl-10 pr-10 text-[15px] outline-none transition-colors duration-200 focus:border-(--primary)"
+            style={{
+              borderColor: "var(--border)",
+              color: "var(--foreground)",
+            }}
+          />
+
+          {searchLoading && (
+            <Loader2
+              size={16}
+              strokeWidth={1.8}
+              className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin"
+              style={{ color: "var(--muted)" }}
+            />
+          )}
+
+          {/* Search results */}
+          {showPanel && (
+            <div
+              className="absolute left-0 top-full z-30 mt-2 max-h-[70vh] w-md overflow-y-auto rounded-lg border bg-background shadow-lg"
+              style={{ borderColor: "var(--border)" }}
+            >
+              {!hasQuery ? (
+                <p
+                  className="px-4 py-6 text-center text-[13px]"
+                  style={{ color: "var(--muted)" }}
+                >
+                  Type at least {MIN_QUERY_LENGTH} characters to search.
+                </p>
+              ) : searchError ? (
+                <p
+                  className="px-4 py-6 text-center text-[13px]"
+                  style={{ color: "var(--danger, #e53e3e)" }}
+                >
+                  {searchError}
+                </p>
+              ) : sections.length === 0 ? (
+                <p
+                  className="px-4 py-6 text-center text-[13px]"
+                  style={{ color: "var(--muted)" }}
+                >
+                  {searchLoading
+                    ? "Searching..."
+                    : `No results for "${trimmedQuery}".`}
+                </p>
+              ) : (
+                sections.map((section) => (
+                  <div key={section.label}>
+                    <div
+                      className="sticky top-0 z-10 border-b bg-background px-4 py-2 text-[11px] font-semibold uppercase tracking-wide"
+                      style={{
+                        borderColor: "var(--border)",
+                        color: "var(--muted)",
+                      }}
+                    >
+                      {section.label}
+                    </div>
+
+                    {section.items.map((item) => {
+                      itemIndex += 1;
+
+                      const index = itemIndex;
+                      const isActive = index === activeIndex;
+
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => openResult(item.href)}
+                          onMouseEnter={() => setActiveIndex(index)}
+                          className={`flex w-full cursor-pointer items-center gap-3 border-b border-(--border-light) px-4 py-2.5 text-left transition-colors ${
+                            isActive ? "bg-(--hover)" : ""
+                          }`}
+                        >
+                          {item.badge && (
+                            <div className="flex w-16 shrink-0 justify-start">
+                              <span
+                                className={`rounded-md px-2 py-2 text-[11px] font-semibold ${
+                                  item.badgeStyle === "course"
+                                    ? ""
+                                    : `text-[10px] font-bold ${
+                                        item.badgeClass ?? ""
+                                      }`
+                                }`}
+                                style={
+                                  item.badgeStyle === "course"
+                                    ? {
+                                        backgroundColor: "var(--primary-light)",
+                                        color: "var(--primary)",
+                                      }
+                                    : item.badgeClass
+                                      ? undefined
+                                      : {
+                                          backgroundColor: "var(--smoke)",
+                                          color: "var(--muted)",
+                                        }
+                                }
+                              >
+                                {item.badge}
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="min-w-0 flex-1">
+                            <p
+                              className="truncate text-[14px] font-medium"
+                              style={{
+                                color: "var(--foreground)",
+                              }}
+                            >
+                              {item.title}
+                            </p>
+
+                            {item.subtitle && (
+                              <p
+                                className="mt-0.5 truncate text-[12px]"
+                                style={{
+                                  color: "var(--muted)",
+                                }}
+                              >
+                                {item.subtitle}
+                              </p>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div />
+      )}
 
       {/* Right side */}
       <div className="flex shrink-0 items-center gap-5">
@@ -121,7 +476,9 @@ export default function Header({
           {hasNotifications && (
             <span
               className="absolute right-2 top-2 h-2 w-2 rounded-full"
-              style={{ backgroundColor: "var(--primary)" }}
+              style={{
+                backgroundColor: "var(--primary)",
+              }}
             />
           )}
         </button>
@@ -135,7 +492,9 @@ export default function Header({
           >
             <div
               className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-semibold text-background"
-              style={{ backgroundColor: "var(--primary)" }}
+              style={{
+                backgroundColor: "var(--primary)",
+              }}
             >
               {user?.profilePhotoUrl ? (
                 <Image
@@ -178,7 +537,9 @@ export default function Header({
                     href="/profile"
                     onClick={() => setMenuOpen(false)}
                     className="flex cursor-pointer items-center gap-2.5 px-3.5 py-2 text-[14px] transition-colors duration-200 hover:bg-(--hover)"
-                    style={{ color: "var(--foreground)" }}
+                    style={{
+                      color: "var(--foreground)",
+                    }}
                   >
                     <User size={16} strokeWidth={1.7} />
                     View Profile
@@ -189,7 +550,9 @@ export default function Header({
                     disabled
                     title="Settings are not available yet"
                     className="flex w-full cursor-not-allowed items-center gap-2.5 px-3.5 py-2 text-left text-[14px] opacity-50"
-                    style={{ color: "var(--foreground)" }}
+                    style={{
+                      color: "var(--foreground)",
+                    }}
                   >
                     <Settings size={16} strokeWidth={1.7} />
                     Settings
@@ -218,7 +581,9 @@ export default function Header({
                   href="/sign-in"
                   onClick={() => setMenuOpen(false)}
                   className="flex items-center gap-2.5 px-3.5 py-2 text-[14px] transition-colors duration-200 hover:bg-(--hover)"
-                  style={{ color: "var(--foreground)" }}
+                  style={{
+                    color: "var(--foreground)",
+                  }}
                 >
                   <User size={16} strokeWidth={1.7} />
                   Sign in
