@@ -1,15 +1,21 @@
 "use client";
 
-import { FileText, SquarePen, Upload, Users } from "lucide-react";
+import { FileText, SquarePen, Upload, UserPlus, Users } from "lucide-react";
 
 interface CourseHeaderProps {
   code: string;
   name: string;
-  description: string;
+  description: string | null;
   memberCount: number;
   resourceCount: number;
   isAdmin: boolean;
+  isStudent: boolean;
+  isEnrolled: boolean;
+  actionLoading?: boolean;
   onEditClick: () => void;
+  onEnrollClick: () => void;
+  onJoinClick: () => void;
+  onLeaveClick: () => void;
 }
 
 export default function CourseHeader({
@@ -19,7 +25,13 @@ export default function CourseHeader({
   memberCount,
   resourceCount,
   isAdmin,
+  isStudent,
+  isEnrolled,
+  actionLoading = false,
   onEditClick,
+  onEnrollClick,
+  onJoinClick,
+  onLeaveClick,
 }: CourseHeaderProps) {
   return (
     <div
@@ -52,7 +64,7 @@ export default function CourseHeader({
             className="mt-2 max-w-2xl text-[15px] leading-6"
             style={{ color: "var(--muted)" }}
           >
-            {description}
+            {description || "No description available."}
           </p>
 
           {/* Stats */}
@@ -78,33 +90,62 @@ export default function CourseHeader({
         {/* Actions */}
         <div className="flex shrink-0 items-center gap-2">
           {isAdmin ? (
-            <button
-              type="button"
-              onClick={onEditClick}
-              className="flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-medium text-white transition-opacity bg-(--primary) hover:opacity-90"
-            >
-              <SquarePen size={15} strokeWidth={1.8} />
-              Edit Course
-            </button>
-          ) : (
             <>
-              {/* Upload Resource */}
               <button
                 type="button"
-                className="flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-medium text-white transition-opacity bg-(--primary) hover:opacity-90"
+                onClick={onEnrollClick}
+                className="flex cursor-pointer items-center gap-2 rounded-lg bg-(--smoke) px-4 py-2.5 text-[13px] font-medium text-(--foreground) transition-colors hover:bg-(--hover)"
               >
-                <Upload size={16} strokeWidth={1.8} />
-                Upload Resource
+                <UserPlus size={15} strokeWidth={1.8} />
+                Enroll Students
               </button>
 
-              {/* Leave Course */}
               <button
                 type="button"
-                className="cursor-pointer rounded-lg bg-(--smoke) px-4 py-2.5 text-[13px] font-medium text-(--danger) transition-colors hover:bg-(--hover-danger)"
+                onClick={onEditClick}
+                className="flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-medium text-white transition-opacity bg-(--primary) hover:opacity-90"
               >
-                Leave Course
+                <SquarePen size={15} strokeWidth={1.8} />
+                Edit Course
               </button>
             </>
+          ) : (
+            isStudent && (
+              <>
+                {isEnrolled ? (
+                  <>
+                    {/* Upload Resource */}
+                    <button
+                      type="button"
+                      className="flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-medium text-white transition-opacity bg-(--primary) hover:opacity-90"
+                    >
+                      <Upload size={16} strokeWidth={1.8} />
+                      Upload Resource
+                    </button>
+
+                    {/* Leave Course */}
+                    <button
+                      type="button"
+                      disabled={actionLoading}
+                      onClick={onLeaveClick}
+                      className="cursor-pointer rounded-lg bg-(--smoke) px-4 py-2.5 text-[13px] font-medium text-(--danger) transition-colors hover:bg-(--hover-danger) disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Leave Course
+                    </button>
+                  </>
+                ) : (
+                  /* Join Course */
+                  <button
+                    type="button"
+                    disabled={actionLoading}
+                    onClick={onJoinClick}
+                    className="cursor-pointer rounded-lg px-4 py-2.5 text-[13px] font-medium text-white transition-opacity bg-(--primary) hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Join Course
+                  </button>
+                )}
+              </>
+            )
           )}
         </div>
       </div>

@@ -1,21 +1,40 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Star, UserRound } from "lucide-react";
+import { Download, Star, Trash2, UserRound } from "lucide-react";
 
 // Data
 // NOTE: adjust this path/alias if your tsconfig "@/" alias doesn't point to the project root
 import { users } from "@/app/lib/data/users";
-import type { Resource, User } from "@/app/lib/types";
+import type { Resource } from "@/app/lib/types";
+import type { CourseStudent } from "@/app/lib/api/courses";
 
 interface CourseTabsProps {
   courseResources: Resource[];
-  courseStudents: User[];
+  courseStudents: CourseStudent[];
+  studentSearch: string;
+  onStudentSearchChange: (value: string) => void;
+  studentsLoading?: boolean;
+  isAdmin?: boolean;
+  actionLoading?: boolean;
+  onRemoveStudent?: (student: CourseStudent) => void;
+}
+
+function getFullName(student: CourseStudent) {
+  return [student.firstName, student.middleName, student.lastName]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export default function CourseTabs({
   courseResources,
   courseStudents,
+  studentSearch,
+  onStudentSearchChange,
+  studentsLoading = false,
+  isAdmin = false,
+  actionLoading = false,
+  onRemoveStudent,
 }: CourseTabsProps) {
   const [activeTab, setActiveTab] = useState<"resources" | "students">(
     "resources",
@@ -175,6 +194,8 @@ export default function CourseTabs({
             <div>
               <input
                 type="text"
+                value={studentSearch}
+                onChange={(event) => onStudentSearchChange(event.target.value)}
                 placeholder="Search students..."
                 className="w-full rounded-lg border px-4 py-3 text-[14px] outline-none transition-colors focus:border-(--primary)"
                 style={{
@@ -187,9 +208,22 @@ export default function CourseTabs({
 
             {/* Students List */}
             <div
-              className="mt-5 overflow-hidden rounded-xl border bg-background"
+              className={`mt-5 overflow-hidden rounded-xl border bg-background transition-opacity ${
+                studentsLoading ? "opacity-60" : ""
+              }`}
               style={{ borderColor: "var(--border)" }}
             >
+              {courseStudents.length === 0 && (
+                <p
+                  className="px-5 py-6 text-center text-[13px]"
+                  style={{ color: "var(--muted)" }}
+                >
+                  {studentsLoading
+                    ? "Loading students..."
+                    : "No students found."}
+                </p>
+              )}
+
               {courseStudents.map((student, index) => (
                 <div
                   key={student.id}
@@ -202,22 +236,31 @@ export default function CourseTabs({
                 >
                   {/* Student Info */}
                   <div className="flex items-center gap-4">
-                    <div
-                      className="flex h-10 w-10 items-center justify-center rounded-full"
-                      style={{
-                        backgroundColor: "var(--primary-light)",
-                        color: "var(--primary)",
-                      }}
-                    >
-                      <UserRound size={18} strokeWidth={1.7} />
-                    </div>
+                    {student.profilePhotoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={student.profilePhotoUrl}
+                        alt={getFullName(student)}
+                        className="h-10 w-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="flex h-10 w-10 items-center justify-center rounded-full"
+                        style={{
+                          backgroundColor: "var(--primary-light)",
+                          color: "var(--primary)",
+                        }}
+                      >
+                        <UserRound size={18} strokeWidth={1.7} />
+                      </div>
+                    )}
 
                     <div>
                       <h3
                         className="text-[14px] font-medium"
                         style={{ color: "var(--foreground)" }}
                       >
-                        {student.name}
+                        {getFullName(student)}
                       </h3>
 
                       <p
@@ -229,16 +272,31 @@ export default function CourseTabs({
                     </div>
                   </div>
 
-                  {/* Student Role */}
-                  <span
-                    className="rounded-md px-2.5 py-1 text-[11px] font-medium"
-                    style={{
-                      backgroundColor: "var(--primary-light)",
-                      color: "var(--primary)",
-                    }}
-                  >
-                    Student
-                  </span>
+                  {/* Student Role + Actions */}
+                  <div className="flex items-center gap-4">
+                    <span
+                      className="rounded-md px-2.5 py-1 text-[11px] font-medium"
+                      style={{
+                        backgroundColor: "var(--primary-light)",
+                        color: "var(--primary)",
+                      }}
+                    >
+                      Student
+                    </span>
+
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        title="Remove from course"
+                        disabled={actionLoading}
+                        onClick={() => onRemoveStudent?.(student)}
+                        className="cursor-pointer transition-opacity hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
+                        style={{ color: "var(--danger, #e53e3e)" }}
+                      >
+                        <Trash2 size={17} strokeWidth={1.7} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
