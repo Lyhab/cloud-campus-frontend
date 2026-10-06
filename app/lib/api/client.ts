@@ -26,12 +26,13 @@ export async function apiRequest<T>(
   options: ApiRequestOptions = {},
 ): Promise<T> {
   const { skipRefresh = false, ...fetchOptions } = options;
+  const isFormData = fetchOptions.body instanceof FormData;
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...fetchOptions,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...fetchOptions.headers,
     },
   });

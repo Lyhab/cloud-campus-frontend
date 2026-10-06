@@ -63,7 +63,7 @@ export default function DashboardPage() {
     }
 
     if (!user) {
-      router.replace("/resources");
+      router.replace("/sign-in");
       return;
     }
 

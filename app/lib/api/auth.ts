@@ -37,6 +37,12 @@ export interface MessageResponse {
   message: string;
 }
 
+export type UserStats = {
+  coursesJoined: number;
+  resourcesUploaded: number;
+  totalDownloads: number;
+};
+
 export interface CurrentUser {
   id: string;
   firstName: string;
@@ -46,6 +52,7 @@ export interface CurrentUser {
   role: "student" | "admin";
   status: "active" | "pending" | "inactive";
   profilePhotoUrl: string | null;
+  stats?: UserStats;
   joinedAt: string;
   updatedAt: string;
   emailVerified: boolean;

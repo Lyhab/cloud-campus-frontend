@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -11,6 +12,7 @@ import {
   LogOut,
   ChevronDown,
 } from "lucide-react";
+
 import { logout } from "../lib/api/auth";
 import { useAuth } from "../context/AuthContext";
 
@@ -26,7 +28,8 @@ export default function Header({
   hasNotifications = false,
 }: HeaderProps) {
   const router = useRouter();
-  const { isAuthenticated, clearUser } = useAuth();
+
+  const { user, isAuthenticated, clearUser } = useAuth();
 
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -63,6 +66,19 @@ export default function Header({
       setIsLoggingOut(false);
     }
   }
+
+  const displayName = user
+    ? [user.firstName, user.middleName, user.lastName].filter(Boolean).join(" ")
+    : name;
+
+  const displayInitials = user
+    ? [user.firstName, user.lastName]
+        .filter(Boolean)
+        .map((value) => value[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : initials;
 
   return (
     <header
@@ -114,21 +130,31 @@ export default function Header({
         <div className="relative" ref={menuRef}>
           <button
             type="button"
-            onClick={() => setMenuOpen((v) => !v)}
+            onClick={() => setMenuOpen((value) => !value)}
             className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-200 hover:bg-(--hover)"
           >
             <div
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-background"
+              className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-semibold text-background"
               style={{ backgroundColor: "var(--primary)" }}
             >
-              {initials}
+              {user?.profilePhotoUrl ? (
+                <Image
+                  src={user.profilePhotoUrl}
+                  alt={displayName}
+                  width={36}
+                  height={36}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                displayInitials
+              )}
             </div>
 
             <span
               className="whitespace-nowrap text-[15px] font-medium"
               style={{ color: "var(--foreground)" }}
             >
-              {name}
+              {displayName}
             </span>
 
             <ChevronDown
@@ -150,6 +176,7 @@ export default function Header({
                 <>
                   <Link
                     href="/profile"
+                    onClick={() => setMenuOpen(false)}
                     className="flex cursor-pointer items-center gap-2.5 px-3.5 py-2 text-[14px] transition-colors duration-200 hover:bg-(--hover)"
                     style={{ color: "var(--foreground)" }}
                   >
@@ -170,7 +197,9 @@ export default function Header({
 
                   <div
                     className="my-1 border-t"
-                    style={{ borderColor: "var(--border-light)" }}
+                    style={{
+                      borderColor: "var(--border-light)",
+                    }}
                   />
 
                   <button

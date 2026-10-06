@@ -9,10 +9,9 @@ import {
   FileText,
   Users,
   BarChart3,
-  Bookmark,
-  UploadCloud,
   ChevronsLeft,
 } from "lucide-react";
+
 import { useAuth } from "../context/AuthContext";
 
 const adminNavItems = [
@@ -93,8 +92,7 @@ export default function Sidebar() {
     (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
   );
 
-  const backgroundIndex =
-    hoveredIndex !== null ? hoveredIndex : Math.max(activeIndex, 0);
+  const backgroundIndex = hoveredIndex !== null ? hoveredIndex : activeIndex;
 
   return (
     <aside
@@ -139,15 +137,16 @@ export default function Sidebar() {
         onMouseLeave={() => setHoveredIndex(null)}
       >
         <div className="relative space-y-1">
-          {navItems.length > 0 && (
-            <div
-              className="pointer-events-none absolute left-0 right-0 h-10 rounded-lg transition-transform duration-300 ease-out"
-              style={{
-                backgroundColor: "var(--primary-light)",
-                transform: `translateY(${backgroundIndex * 44}px)`,
-              }}
-            />
-          )}
+          {navItems.length > 0 &&
+            (activeIndex !== -1 || hoveredIndex !== null) && (
+              <div
+                className="pointer-events-none absolute left-0 right-0 h-10 rounded-lg transition-transform duration-300 ease-out"
+                style={{
+                  backgroundColor: "var(--primary-light)",
+                  transform: `translateY(${backgroundIndex * 44}px)`,
+                }}
+              />
+            )}
 
           {navItems.map((item, index) => {
             const Icon = item.icon;
