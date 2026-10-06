@@ -2,12 +2,14 @@
 
 import { Check, X } from "lucide-react";
 
-import type { Report } from "@/app/lib/types";
+import type { Report } from "@/app/lib/api/reports";
+import { formatDateTime } from "@/app/lib/format-date";
 
 interface ReportHeaderProps {
   report: Report;
   reporterName: string;
   resourceTitle: string;
+  actionLoading?: boolean;
   onResolve: () => void;
   onDismiss: () => void;
 }
@@ -31,6 +33,7 @@ export default function ReportHeader({
   report,
   reporterName,
   resourceTitle,
+  actionLoading = false,
   onResolve,
   onDismiss,
 }: ReportHeaderProps) {
@@ -81,7 +84,7 @@ export default function ReportHeader({
 
             <span>·</span>
 
-            <span>{report.date}</span>
+            <span>{formatDateTime(report.createdAt)}</span>
           </div>
 
           {/* Reason */}
@@ -102,28 +105,32 @@ export default function ReportHeader({
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            title="Dismiss report"
-            onClick={onDismiss}
-            className="flex cursor-pointer items-center gap-2 rounded-lg bg-(--smoke) px-4 py-2.5 text-[13px] font-medium text-(--danger) transition-colors hover:bg-(--hover-danger)"
-          >
-            <X size={16} strokeWidth={1.8} />
-            Dismiss
-          </button>
+        {/* Actions (pending reports only) */}
+        {report.status === "pending" && (
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              title="Dismiss report"
+              disabled={actionLoading}
+              onClick={onDismiss}
+              className="flex cursor-pointer items-center gap-2 rounded-lg bg-(--smoke) px-4 py-2.5 text-[13px] font-medium text-(--danger) transition-colors hover:bg-(--hover-danger) disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <X size={16} strokeWidth={1.8} />
+              Dismiss
+            </button>
 
-          <button
-            type="button"
-            title="Resolve report"
-            onClick={onResolve}
-            className="flex cursor-pointer items-center gap-2 rounded-lg bg-(--success) px-4 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
-          >
-            <Check size={16} strokeWidth={1.8} />
-            Resolve
-          </button>
-        </div>
+            <button
+              type="button"
+              title="Resolve report"
+              disabled={actionLoading}
+              onClick={onResolve}
+              className="flex cursor-pointer items-center gap-2 rounded-lg bg-(--success) px-4 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Check size={16} strokeWidth={1.8} />
+              Resolve
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

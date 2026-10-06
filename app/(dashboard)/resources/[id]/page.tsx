@@ -23,9 +23,10 @@ import {
   downloadResource,
   updateResourceStatus,
   updateResource,
-  type Resource,
   deleteResource,
+  type Resource,
 } from "@/app/lib/api/resources";
+import { createReport } from "@/app/lib/api/reports";
 
 // Helpers
 import { getFileTypeBadgeClass } from "@/app/lib/get-file-type-badge-class";
@@ -46,6 +47,7 @@ export default function ResourceDetailsPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -208,6 +210,25 @@ export default function ResourceDetailsPage() {
     }
   }
 
+  async function handleReport(reason: string): Promise<boolean> {
+    if (!resource || !reason) return false;
+
+    try {
+      setError(null);
+      setSuccess(null);
+
+      await createReport({ resourceId: resource.id, reason });
+
+      setSuccess(
+        "Report submitted. Thanks for helping keep resources accurate.",
+      );
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to submit report.");
+      return false;
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -283,6 +304,19 @@ export default function ResourceDetailsPage() {
         </div>
       )}
 
+      {success && (
+        <div
+          className="mb-4 rounded-lg border px-4 py-3 text-sm"
+          style={{
+            borderColor: "#10b981",
+            color: "#059669",
+            backgroundColor: "#ecfdf5",
+          }}
+        >
+          {success}
+        </div>
+      )}
+
       <ResourceHeader
         resource={resource}
         fileType={fileType}
@@ -306,6 +340,7 @@ export default function ResourceDetailsPage() {
         onUpdateStatus={handleUpdateStatus}
         onUpdate={handleUpdateResource}
         onDelete={handleDeleteResource}
+        onReport={handleReport}
       />
 
       {/* Main Content */}

@@ -5,6 +5,7 @@ import {
   Bookmark,
   BookmarkCheck,
   Download,
+  Flag,
   Pencil,
   Star,
   Trash2,
@@ -53,6 +54,7 @@ interface ResourceHeaderProps {
   onDownload: () => void;
   onUpdate: (data: ResourceUpdatePayload) => Promise<boolean>;
   onDelete: () => Promise<boolean>;
+  onReport: (reason: string) => Promise<boolean>;
   onUpdateStatus: (status: "approved" | "rejected") => void;
 }
 
@@ -75,6 +77,16 @@ const editFields: FormField[] = [
     label: "Replace File (optional)",
     type: "file",
     accept: ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg",
+  },
+];
+
+const reportFields: FormField[] = [
+  {
+    name: "reason",
+    label: "Reason",
+    type: "textarea",
+    placeholder: "Describe what's wrong with this resource...",
+    required: true,
   },
 ];
 
@@ -101,9 +113,11 @@ export default function ResourceHeader({
   onDownload,
   onUpdate,
   onDelete,
+  onReport,
   onUpdateStatus,
 }: ResourceHeaderProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -257,6 +271,18 @@ export default function ResourceHeader({
                   </button>
                 )}
 
+                {/* Report (other people's work only) */}
+                {isAuthenticated && !isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => setIsReportOpen(true)}
+                    className="flex cursor-pointer items-center gap-2 rounded-lg bg-(--smoke) px-4 py-2.5 text-[13px] font-medium text-(--danger) transition-colors hover:bg-(--hover-danger)"
+                  >
+                    <Flag size={16} strokeWidth={1.8} />
+                    Report
+                  </button>
+                )}
+
                 {/* Bookmark */}
                 {isAuthenticated && (
                   <button
@@ -364,6 +390,23 @@ export default function ResourceHeader({
               });
 
               if (success) setIsEditOpen(false);
+            })();
+          }}
+        />
+      )}
+
+      {/* Report Resource */}
+      {isReportOpen && (
+        <Form
+          title="Report Resource"
+          description="Tell the moderators what's wrong with this resource."
+          fields={reportFields}
+          onClose={() => setIsReportOpen(false)}
+          onSubmit={(data) => {
+            void (async () => {
+              const success = await onReport(String(data.reason ?? "").trim());
+
+              if (success) setIsReportOpen(false);
             })();
           }}
         />

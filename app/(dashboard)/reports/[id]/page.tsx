@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
@@ -8,50 +9,154 @@ import ReportHeader from "@/app/components/pages/reports/report-header";
 import ResourceHeader from "@/app/components/pages/resources/resource-header";
 import ResourceFilePreview from "@/app/components/pages/resources/resource-file-preview";
 
-// Data
-import { reports } from "../../../lib/data/reports";
-import { resources } from "../../../lib/data/resources";
-import { courses } from "../../../lib/data/courses";
-import { users } from "../../../lib/data/users";
-import { mockViewer } from "../../../lib/data/mock-viewer";
+// Auth
+import { useAuth } from "@/app/context/AuthContext";
+
+// API
+import {
+  getReport,
+  updateReportStatus,
+  type Report,
+} from "@/app/lib/api/reports";
+import {
+  downloadResource,
+  type Resource,
+  type ResourceStatus,
+} from "@/app/lib/api/resources";
 
 // Helpers
 import { getFileTypeBadgeClass } from "@/app/lib/get-file-type-badge-class";
 
+function getFullName(person: {
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+}) {
+  return [person.firstName, person.middleName, person.lastName]
+    .filter(Boolean)
+    .join(" ");
+}
+
 export default function ReportDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const isAdmin = mockViewer.role === "admin";
+  const reportId = params.id as string;
 
-  if (!isAdmin) {
+  const { user, isLoading: authLoading } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const [report, setReport] = useState<Report | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  /*
+   * Access control:
+   * guest   -> /resources
+   * student -> /dashboard
+   */
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!user) {
+      router.replace("/resources");
+    } else if (user.role !== "admin") {
+      router.replace("/dashboard");
+    }
+  }, [authLoading, user, router]);
+
+  /*
+   * Load report.
+   */
+  useEffect(() => {
+    if (authLoading || !isAdmin) return;
+
+    let cancelled = false;
+
+    async function load() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const data = await getReport(reportId);
+
+        if (cancelled) return;
+
+        setReport(data);
+      } catch (err) {
+        if (cancelled) return;
+
+        setReport(null);
+        setError(err instanceof Error ? err.message : "Failed to load report.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, isAdmin, reportId]);
+
+  async function handleUpdateStatus(status: "dismissed" | "resolved") {
+    if (!report) return;
+
+    try {
+      setActionLoading(true);
+      setError(null);
+
+      const updated = await updateReportStatus(report.id, { status });
+
+      setReport(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update report.");
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleDownload() {
+    if (!report) return;
+
+    const { resource } = report;
+
+    try {
+      const blob = await downloadResource(resource.id);
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${resource.title}.${resource.fileType.toLowerCase()}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to download resource.",
+      );
+    }
+  }
+
+  /*
+   * Render nothing while auth resolves or while redirecting.
+   */
+  if (authLoading || !isAdmin) {
+    return null;
+  }
+
+  if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <h1
-            className="text-xl font-semibold"
-            style={{ color: "var(--foreground)" }}
-          >
-            Access Denied
-          </h1>
-
-          <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
-            This page is available to administrators only.
-          </p>
-
-          <button
-            type="button"
-            onClick={() => router.push("/dashboard")}
-            className="mt-3 cursor-pointer text-sm"
-            style={{ color: "var(--primary)" }}
-          >
-            Back to Dashboard
-          </button>
-        </div>
+        <span className="text-sm" style={{ color: "var(--muted)" }}>
+          Loading report...
+        </span>
       </div>
     );
   }
-
-  const report = reports.find((report) => report.id === params.id);
 
   if (!report) {
     return (
@@ -61,7 +166,7 @@ export default function ReportDetailsPage() {
             className="text-xl font-semibold"
             style={{ color: "var(--foreground)" }}
           >
-            Report not found
+            {error ?? "Report not found"}
           </h1>
 
           <button
@@ -77,46 +182,18 @@ export default function ReportDetailsPage() {
     );
   }
 
-  const resource = resources.find(
-    (resource) => resource.id === report.resourceId,
-  );
-
-  if (!resource) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <h1
-            className="text-xl font-semibold"
-            style={{ color: "var(--foreground)" }}
-          >
-            Resource not found
-          </h1>
-
-          <button
-            type="button"
-            onClick={() => router.push("/reports")}
-            className="mt-3 cursor-pointer text-sm"
-            style={{ color: "var(--primary)" }}
-          >
-            Back to Reports
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const course = courses.find((course) => course.id === resource.courseId);
-
-  const uploader = users.find((user) => user.id === resource.uploadedBy);
-
-  const reporter = users.find((user) => user.id === report.reporterId);
+  // ReportResource has the same shape as Resource, but status is a plain string.
+  const resource: Resource = {
+    ...report.resource,
+    status: report.resource.status as ResourceStatus,
+  };
 
   const fileType = resource.fileType.toUpperCase();
   const fileTypeClass = getFileTypeBadgeClass(resource.fileType);
 
-  const courseLabel = course
-    ? `${course.code} — ${course.name}`
-    : "Unknown Course";
+  const courseLabel = `${resource.course.code} — ${resource.course.name}`;
+  const uploaderName = getFullName(resource.creator);
+  const reporterName = getFullName(report.reporter);
 
   return (
     <div className="h-full overflow-y-auto p-8">
@@ -133,13 +210,26 @@ export default function ReportDetailsPage() {
         </button>
       </div>
 
+      {error && (
+        <div
+          className="mb-4 rounded-lg border px-4 py-3 text-sm"
+          style={{
+            borderColor: "var(--danger, #e53e3e)",
+            color: "var(--danger, #e53e3e)",
+          }}
+        >
+          {error}
+        </div>
+      )}
+
       {/* Report Header */}
       <ReportHeader
         report={report}
-        reporterName={reporter?.name ?? report.reporterId}
+        reporterName={reporterName}
         resourceTitle={resource.title}
-        onResolve={() => console.log("resolve report:", report.id)}
-        onDismiss={() => console.log("dismiss report:", report.id)}
+        actionLoading={actionLoading}
+        onResolve={() => void handleUpdateStatus("resolved")}
+        onDismiss={() => void handleUpdateStatus("dismissed")}
       />
 
       {/* Reported Resource */}
@@ -153,22 +243,32 @@ export default function ReportDetailsPage() {
 
         {/* Resource Container */}
         <div className="overflow-hidden rounded-xl border bg-background p-10 border-(--border) shadow-even-md">
-          {/* Resource Header */}
+          {/* Resource Header (read-only) */}
           <ResourceHeader
             resource={resource}
             fileType={fileType}
             fileTypeClass={fileTypeClass}
             courseLabel={courseLabel}
-            uploaderName={uploader?.name ?? resource.uploadedBy}
+            uploaderName={uploaderName}
             isAdmin={isAdmin}
+            isAuthenticated
+            isOwner={false}
             showActions={false}
-            onCourseClick={() => course && router.push(`/courses/${course.id}`)}
-            averageRating={resource.rating}
+            onCourseClick={() => router.push(`/courses/${resource.course.id}`)}
+            averageRating={Number(resource.avgRating) || 0}
+            ratingCount={resource.ratingCount}
             userRating={0}
             hoverRating={0}
             hasRated={false}
             onRate={() => {}}
             onHoverRating={() => {}}
+            isBookmarked={false}
+            onToggleBookmark={() => {}}
+            onDownload={() => void handleDownload()}
+            onUpdate={async () => false}
+            onDelete={async () => false}
+            onReport={async () => false}
+            onUpdateStatus={() => {}}
           />
 
           {/* File Preview */}
@@ -176,6 +276,8 @@ export default function ReportDetailsPage() {
             <ResourceFilePreview
               fileType={fileType}
               fileTypeClass={fileTypeClass}
+              fileUrl={resource.fileUrl}
+              onDownload={() => void handleDownload()}
             />
           </div>
         </div>
