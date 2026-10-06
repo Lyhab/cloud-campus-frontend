@@ -455,7 +455,7 @@ export default function UsersPage() {
                 value: "pending",
               },
               {
-                label: "Disabled",
+                label: "Inactive",
                 value: "inactive",
               },
             ],
