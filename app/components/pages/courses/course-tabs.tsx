@@ -1,16 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Download, Star, Trash2, UserRound } from "lucide-react";
 
-// Data
-// NOTE: adjust this path/alias if your tsconfig "@/" alias doesn't point to the project root
-import { users } from "@/app/lib/data/users";
-import type { Resource } from "@/app/lib/types";
+import {
+  downloadResource,
+  getResources,
+  type Resource,
+} from "@/app/lib/api/resources";
 import type { CourseStudent } from "@/app/lib/api/courses";
+import { getFileTypeBadgeClass } from "@/app/lib/get-file-type-badge-class";
+import { formatDateTime } from "@/app/lib/format-date";
 
 interface CourseTabsProps {
-  courseResources: Resource[];
+  courseId: string;
+  resourcesRefreshKey?: number;
+  onResourceCountChange?: (count: number) => void;
   courseStudents: CourseStudent[];
   studentSearch: string;
   onStudentSearchChange: (value: string) => void;
@@ -26,8 +32,20 @@ function getFullName(student: CourseStudent) {
     .join(" ");
 }
 
+function getUploaderName(resource: Resource) {
+  return [
+    resource.creator.firstName,
+    resource.creator.middleName,
+    resource.creator.lastName,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 export default function CourseTabs({
-  courseResources,
+  courseId,
+  resourcesRefreshKey = 0,
+  onResourceCountChange,
   courseStudents,
   studentSearch,
   onStudentSearchChange,
@@ -36,9 +54,104 @@ export default function CourseTabs({
   actionLoading = false,
   onRemoveStudent,
 }: CourseTabsProps) {
+  const router = useRouter();
+
   const [activeTab, setActiveTab] = useState<"resources" | "students">(
     "resources",
   );
+
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [resourcesLoading, setResourcesLoading] = useState(true);
+  const [resourcesError, setResourcesError] = useState<string | null>(null);
+
+  const [resourceSearch, setResourceSearch] = useState("");
+  const [debouncedResourceSearch, setDebouncedResourceSearch] = useState("");
+
+  /*
+   * Debounce resource search by 500ms.
+   */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedResourceSearch(resourceSearch);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [resourceSearch]);
+
+  /*
+   * Load this course's resources.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        setResourcesLoading(true);
+        setResourcesError(null);
+
+        const response = await getResources({
+          courseId,
+          limit: 100,
+          sort: "newest",
+          search: debouncedResourceSearch.trim() || undefined,
+          view: "student",
+        });
+
+        if (cancelled) return;
+
+        setResources(response.data);
+
+        // Only report the unfiltered total to the header.
+        if (!debouncedResourceSearch.trim()) {
+          onResourceCountChange?.(response.total);
+        }
+      } catch (err) {
+        if (cancelled) return;
+
+        setResources([]);
+        setResourcesError(
+          err instanceof Error ? err.message : "Failed to load resources.",
+        );
+      } finally {
+        if (!cancelled) setResourcesLoading(false);
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseId, debouncedResourceSearch, resourcesRefreshKey]);
+
+  async function handleDownload(resource: Resource) {
+    try {
+      const blob = await downloadResource(resource.id);
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${resource.title}.${resource.fileType.toLowerCase()}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      URL.revokeObjectURL(url);
+
+      setResources((current) =>
+        current.map((item) =>
+          item.id === resource.id
+            ? { ...item, downloads: item.downloads + 1 }
+            : item,
+        ),
+      );
+    } catch (err) {
+      setResourcesError(
+        err instanceof Error ? err.message : "Failed to download resource.",
+      );
+    }
+  }
 
   return (
     <>
@@ -84,6 +197,8 @@ export default function CourseTabs({
             <div className="mt-6">
               <input
                 type="text"
+                value={resourceSearch}
+                onChange={(event) => setResourceSearch(event.target.value)}
                 placeholder="Search resources..."
                 className="w-full rounded-lg border px-4 py-3 text-[14px] outline-none transition-colors focus:border-(--primary)"
                 style={{
@@ -94,43 +209,61 @@ export default function CourseTabs({
               />
             </div>
 
+            {resourcesError && (
+              <div
+                className="mt-4 rounded-lg border px-4 py-3 text-sm"
+                style={{
+                  borderColor: "var(--danger, #e53e3e)",
+                  color: "var(--danger, #e53e3e)",
+                }}
+              >
+                {resourcesError}
+              </div>
+            )}
+
             {/* Resources List */}
             <div
-              className="mt-5 overflow-hidden rounded-xl border bg-background"
+              className={`mt-5 overflow-hidden rounded-xl border bg-background transition-opacity ${
+                resourcesLoading ? "opacity-60" : ""
+              }`}
               style={{ borderColor: "var(--border)" }}
             >
-              {courseResources.map((resource, index) => {
-                const uploader = users.find(
-                  (user) => user.id === resource.uploadedBy,
-                );
+              {resources.length === 0 && (
+                <p
+                  className="px-5 py-6 text-center text-[13px]"
+                  style={{ color: "var(--muted)" }}
+                >
+                  {resourcesLoading
+                    ? "Loading resources..."
+                    : "No resources found."}
+                </p>
+              )}
+
+              {resources.map((resource, index) => {
+                const rating = Number(resource.avgRating) || 0;
 
                 return (
                   <div
                     key={resource.id}
-                    className={`flex items-center justify-between px-5 py-4 ${
-                      index !== courseResources.length - 1 ? "border-b" : ""
+                    onClick={() => router.push(`/resources/${resource.id}`)}
+                    className={`flex cursor-pointer items-center justify-between px-5 py-4 transition-colors hover:bg-(--hover) ${
+                      index !== resources.length - 1 ? "border-b" : ""
                     }`}
-                    style={{
-                      borderColor: "var(--border-light)",
-                    }}
+                    style={{ borderColor: "var(--border-light)" }}
                   >
                     {/* Resource Info */}
-                    <div className="flex items-center gap-4">
+                    <div className="flex min-w-0 items-center gap-4">
                       <span
-                        className="flex h-10 w-10 items-center justify-center rounded-lg text-[10px] font-bold uppercase"
-                        style={{
-                          backgroundColor:
-                            resource.fileType === "pdf" ? "#fff1f2" : "#fff7ed",
-                          color:
-                            resource.fileType === "pdf" ? "#ef4444" : "#f97316",
-                        }}
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold uppercase ${getFileTypeBadgeClass(
+                          resource.fileType,
+                        )}`}
                       >
                         {resource.fileType}
                       </span>
 
-                      <div>
+                      <div className="min-w-0">
                         <h3
-                          className="text-[14px] font-medium"
+                          className="truncate text-[14px] font-medium"
                           style={{ color: "var(--foreground)" }}
                         >
                           {resource.title}
@@ -140,14 +273,15 @@ export default function CourseTabs({
                           className="mt-1 text-[12px]"
                           style={{ color: "var(--muted)" }}
                         >
-                          {uploader?.name ?? resource.uploadedBy} ·{" "}
-                          {resource.uploadedAt} · {resource.fileSizeMb} MB
+                          {getUploaderName(resource)} ·{" "}
+                          {formatDateTime(resource.uploadedAt)} ·{" "}
+                          {resource.fileSizeMb ?? "0"} MB
                         </p>
                       </div>
                     </div>
 
                     {/* Resource Actions */}
-                    <div className="flex items-center gap-5">
+                    <div className="flex shrink-0 items-center gap-5">
                       <span
                         className="text-[12px]"
                         style={{ color: "var(--muted-light)" }}
@@ -167,13 +301,24 @@ export default function CourseTabs({
                           className="text-[12px]"
                           style={{ color: "#f59e0b" }}
                         >
-                          {resource.rating}
+                          {rating.toFixed(1)}
+                        </span>
+
+                        <span
+                          className="text-[12px]"
+                          style={{ color: "var(--muted)" }}
+                        >
+                          ({resource.ratingCount})
                         </span>
                       </div>
 
                       <button
                         type="button"
                         title="Download"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleDownload(resource);
+                        }}
                         className="cursor-pointer transition-opacity hover:opacity-60"
                         style={{ color: "var(--muted)" }}
                       >
@@ -230,9 +375,7 @@ export default function CourseTabs({
                   className={`flex items-center justify-between px-5 py-4 ${
                     index !== courseStudents.length - 1 ? "border-b" : ""
                   }`}
-                  style={{
-                    borderColor: "var(--border-light)",
-                  }}
+                  style={{ borderColor: "var(--border-light)" }}
                 >
                   {/* Student Info */}
                   <div className="flex items-center gap-4">

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 // Components
-import Form from "@/app/components/form";
+import Form, { type FormField } from "@/app/components/form";
 import CourseHeader from "@/app/components/pages/courses/course-header";
 import CourseTabs from "@/app/components/pages/courses/course-tabs";
 import EnrollStudentsModal from "@/app/components/pages/courses/enroll-students-modal";
@@ -36,12 +36,30 @@ import {
   type Course,
   type CourseStudent,
 } from "@/app/lib/api/courses";
+import { createResource } from "@/app/lib/api/resources";
 
-// Mock data (resources not implemented yet)
-import {
-  getResourceCountForCourse,
-  getResourcesForCourse,
-} from "../../../lib/data/resources";
+const uploadFields: FormField[] = [
+  {
+    name: "title",
+    label: "Title",
+    type: "text",
+    placeholder: "e.g. AWS S3 Study Notes",
+    required: true,
+  },
+  {
+    name: "description",
+    label: "Description",
+    type: "textarea",
+    placeholder: "Enter a short description...",
+  },
+  {
+    name: "file",
+    label: "File",
+    type: "file",
+    required: true,
+    accept: ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg",
+  },
+];
 
 export default function CourseDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -63,12 +81,17 @@ export default function CourseDetailsPage() {
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isEnrollOpen, setIsEnrollOpen] = useState(false);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [studentToRemove, setStudentToRemove] = useState<CourseStudent | null>(
     null,
   );
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // NEW: real resource count + reload trigger for the tabs
+  const [resourceCount, setResourceCount] = useState(0);
+  const [resourcesRefreshKey, setResourcesRefreshKey] = useState(0);
 
   const isAdmin = user?.role === "admin";
   const isStudent = user?.role === "student";
@@ -205,6 +228,41 @@ export default function CourseDetailsPage() {
     }
   }
 
+  async function handleCreateResource(data: {
+    title: string;
+    description: string;
+    file: File;
+  }): Promise<boolean> {
+    if (!course) {
+      return false;
+    }
+
+    setActionError(null);
+    setActionSuccess(null);
+
+    try {
+      await createResource({
+        title: data.title,
+        description: data.description || null,
+        courseId: course.id,
+        file: data.file,
+      });
+
+      setActionSuccess("Uploaded, awaiting admin approval.");
+
+      // NEW: reload the course's resource list
+      setResourcesRefreshKey((key) => key + 1);
+
+      return true;
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : "Failed to upload resource.",
+      );
+
+      return false;
+    }
+  }
+
   async function handleMembership(action: "join" | "leave") {
     if (!course || !isStudent) {
       return;
@@ -297,10 +355,6 @@ export default function CourseDetailsPage() {
     );
   }
 
-  // Resources are still mock data.
-  const resourceCount = getResourceCountForCourse(course.id);
-  const courseResources = getResourcesForCourse(course.id);
-
   return (
     <div className="h-full overflow-y-auto p-8">
       {/* Top Actions */}
@@ -362,10 +416,18 @@ export default function CourseDetailsPage() {
           setActionError(null);
           setIsEditOpen(true);
         }}
+        onUploadClick={() => {
+          setActionError(null);
+          setActionSuccess(null);
+          setIsUploadOpen(true);
+        }}
       />
 
+      {/* CHANGED: fetches its own resources by courseId */}
       <CourseTabs
-        courseResources={courseResources}
+        courseId={course.id}
+        resourcesRefreshKey={resourcesRefreshKey}
+        onResourceCountChange={setResourceCount}
         courseStudents={students}
         studentSearch={studentSearch}
         onStudentSearchChange={setStudentSearch}
@@ -432,6 +494,35 @@ export default function CourseDetailsPage() {
               description: String(data.description ?? ""),
             })
           }
+        />
+      )}
+
+      {/* Upload Resource */}
+      {isUploadOpen && (
+        <Form
+          title="Upload Resource"
+          description="Check existing resources before uploading."
+          fields={uploadFields}
+          onClose={() => setIsUploadOpen(false)}
+          onSubmit={(data) => {
+            const file = data.file;
+
+            if (!(file instanceof File)) {
+              return;
+            }
+
+            void (async () => {
+              const success = await handleCreateResource({
+                title: String(data.title ?? "").trim(),
+                description: String(data.description ?? ""),
+                file,
+              });
+
+              if (success) {
+                setIsUploadOpen(false);
+              }
+            })();
+          }}
         />
       )}
 

@@ -6,6 +6,7 @@ export interface Course {
   name: string;
   description: string | null;
   studentCount: number;
+  resourceCount: number;
   isEnrolled?: boolean;
   createdAt: string;
   updatedAt: string;

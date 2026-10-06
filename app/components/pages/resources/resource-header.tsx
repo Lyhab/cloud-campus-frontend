@@ -1,8 +1,34 @@
 "use client";
 
-import { Bookmark, Download, Star } from "lucide-react";
+import { useState } from "react";
+import {
+  Bookmark,
+  BookmarkCheck,
+  Download,
+  Pencil,
+  Star,
+  Trash2,
+} from "lucide-react";
 
-import type { Resource } from "@/app/lib/types";
+import Form, { type FormField } from "@/app/components/form";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/app/components/ui/alert-dialog";
+import type { Resource } from "@/app/lib/api/resources";
+import { formatDateTime } from "@/app/lib/format-date";
+
+export interface ResourceUpdatePayload {
+  title: string;
+  description: string;
+  file?: File;
+}
 
 interface ResourceHeaderProps {
   resource: Resource;
@@ -11,15 +37,46 @@ interface ResourceHeaderProps {
   courseLabel: string;
   uploaderName: string;
   isAdmin: boolean;
+  isAuthenticated: boolean;
+  isOwner: boolean;
   showActions?: boolean;
   onCourseClick: () => void;
   averageRating: number;
+  ratingCount: number;
   userRating: number;
   hoverRating: number;
   hasRated: boolean;
   onRate: (value: number) => void;
   onHoverRating: (value: number) => void;
+  isBookmarked: boolean;
+  onToggleBookmark: () => void;
+  onDownload: () => void;
+  onUpdate: (data: ResourceUpdatePayload) => Promise<boolean>;
+  onDelete: () => Promise<boolean>;
+  onUpdateStatus: (status: "approved" | "rejected") => void;
 }
+
+const editFields: FormField[] = [
+  {
+    name: "title",
+    label: "Title",
+    type: "text",
+    placeholder: "e.g. AWS S3 Study Notes",
+    required: true,
+  },
+  {
+    name: "description",
+    label: "Description",
+    type: "textarea",
+    placeholder: "Enter a short description...",
+  },
+  {
+    name: "file",
+    label: "Replace File (optional)",
+    type: "file",
+    accept: ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg",
+  },
+];
 
 export default function ResourceHeader({
   resource,
@@ -28,15 +85,28 @@ export default function ResourceHeader({
   courseLabel,
   uploaderName,
   isAdmin,
+  isAuthenticated,
+  isOwner,
   showActions = true,
   onCourseClick,
   averageRating,
+  ratingCount,
   userRating,
   hoverRating,
   hasRated,
   onRate,
   onHoverRating,
+  isBookmarked,
+  onToggleBookmark,
+  onDownload,
+  onUpdate,
+  onDelete,
+  onUpdateStatus,
 }: ResourceHeaderProps) {
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   return (
     <div
       className="rounded-xl border bg-background p-7 shadow-even-md"
@@ -70,6 +140,16 @@ export default function ResourceHeader({
             {courseLabel}
           </button>
 
+          {/* Description */}
+          {resource.description && (
+            <p
+              className="mt-4 max-w-2xl text-[14px] leading-6"
+              style={{ color: "var(--muted)" }}
+            >
+              {resource.description}
+            </p>
+          )}
+
           {/* Metadata */}
           <div
             className="mt-5 flex items-center gap-2 text-[13px]"
@@ -85,9 +165,9 @@ export default function ResourceHeader({
             </span>
 
             <span>·</span>
-            <span>{resource.uploadedAt}</span>
+            <span>{formatDateTime(resource.uploadedAt)}</span>
             <span>·</span>
-            <span>{resource.fileSizeMb} MB</span>
+            <span>{resource.fileSizeMb ?? "0"} MB</span>
           </div>
 
           {/* Stats */}
@@ -112,7 +192,11 @@ export default function ResourceHeader({
                 className="text-[13px] font-medium"
                 style={{ color: "#f59e0b" }}
               >
-                {averageRating}
+                {averageRating.toFixed(1)}
+              </span>
+
+              <span className="text-[12px]" style={{ color: "var(--muted)" }}>
+                ({ratingCount})
               </span>
             </div>
           </div>
@@ -123,40 +207,82 @@ export default function ResourceHeader({
           <div className="flex shrink-0 items-center gap-2">
             {isAdmin ? (
               <>
-                {/* Deny */}
+                {/* Reject */}
                 <button
                   type="button"
-                  className="cursor-pointer rounded-lg bg-(--smoke) px-4 py-2.5 text-[13px] font-medium text-(--danger) transition-colors hover:bg-(--hover-danger)"
+                  onClick={() => onUpdateStatus("rejected")}
+                  disabled={resource.status === "rejected"}
+                  className="cursor-pointer rounded-lg bg-(--smoke) px-4 py-2.5 text-[13px] font-medium text-(--danger) transition-colors hover:bg-(--hover-danger) disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Deny
+                  Reject
                 </button>
 
                 {/* Approve */}
                 <button
                   type="button"
-                  className="cursor-pointer rounded-lg bg-(--primary) px-4 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+                  onClick={() => onUpdateStatus("approved")}
+                  disabled={resource.status === "approved"}
+                  className="cursor-pointer rounded-lg bg-(--primary) px-4 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Approve
                 </button>
               </>
             ) : (
               <>
+                {/* Edit (owner only) */}
+                {isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditOpen(true)}
+                    className="flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-(--hover)"
+                    style={{
+                      borderColor: "var(--border)",
+                      color: "var(--foreground)",
+                    }}
+                  >
+                    <Pencil size={16} strokeWidth={1.8} />
+                    Edit
+                  </button>
+                )}
+
+                {/* Delete (owner only) */}
+                {isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => setIsDeleteOpen(true)}
+                    className="flex cursor-pointer items-center gap-2 rounded-lg bg-(--smoke) px-4 py-2.5 text-[13px] font-medium text-(--danger) transition-colors hover:bg-(--hover-danger)"
+                  >
+                    <Trash2 size={16} strokeWidth={1.8} />
+                    Delete
+                  </button>
+                )}
+
                 {/* Bookmark */}
-                <button
-                  type="button"
-                  className="flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-(--hover)"
-                  style={{
-                    borderColor: "var(--border)",
-                    color: "var(--foreground)",
-                  }}
-                >
-                  <Bookmark size={16} strokeWidth={1.8} />
-                  Bookmark
-                </button>
+                {isAuthenticated && (
+                  <button
+                    type="button"
+                    onClick={onToggleBookmark}
+                    className="flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-(--hover)"
+                    style={{
+                      borderColor: "var(--border)",
+                      color: isBookmarked
+                        ? "var(--primary)"
+                        : "var(--foreground)",
+                    }}
+                  >
+                    {isBookmarked ? (
+                      <BookmarkCheck size={16} strokeWidth={1.8} />
+                    ) : (
+                      <Bookmark size={16} strokeWidth={1.8} />
+                    )}
+                    {isBookmarked ? "Bookmarked" : "Bookmark"}
+                  </button>
+                )}
 
                 {/* Download */}
                 <button
                   type="button"
+                  onClick={onDownload}
                   className="flex cursor-pointer items-center gap-2 rounded-lg bg-(--primary) px-4 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
                 >
                   <Download size={16} strokeWidth={1.8} />
@@ -168,8 +294,8 @@ export default function ResourceHeader({
         )}
       </div>
 
-      {/* Student Rating Row */}
-      {!isAdmin && showActions && (
+      {/* Student Rating Row (hidden for owners) */}
+      {!isAdmin && !isOwner && isAuthenticated && showActions && (
         <div
           className="mt-3 flex items-center gap-3 border-t pt-3"
           style={{ borderColor: "var(--border-light)" }}
@@ -217,6 +343,72 @@ export default function ResourceHeader({
           )}
         </div>
       )}
+
+      {/* Edit Resource */}
+      {isEditOpen && (
+        <Form
+          title="Edit Resource"
+          description="Update the details or replace the file."
+          fields={editFields}
+          initialValues={{
+            title: resource.title,
+            description: resource.description ?? "",
+          }}
+          onClose={() => setIsEditOpen(false)}
+          onSubmit={(data) => {
+            void (async () => {
+              const success = await onUpdate({
+                title: String(data.title ?? "").trim(),
+                description: String(data.description ?? ""),
+                file: data.file instanceof File ? data.file : undefined,
+              });
+
+              if (success) setIsEditOpen(false);
+            })();
+          }}
+        />
+      )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog
+        open={isDeleteOpen}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) setIsDeleteOpen(false);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this resource?</AlertDialogTitle>
+
+            <AlertDialogDescription>
+              This action cannot be undone. The resource will be permanently
+              deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+
+            <AlertDialogAction
+              variant="destructive"
+              disabled={isDeleting}
+              onClick={(event) => {
+                event.preventDefault();
+
+                void (async () => {
+                  setIsDeleting(true);
+                  const success = await onDelete();
+                  setIsDeleting(false);
+
+                  if (success) setIsDeleteOpen(false);
+                })();
+              }}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

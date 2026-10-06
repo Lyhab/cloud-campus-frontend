@@ -1,4 +1,9 @@
-import { Download } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { Download, Loader2 } from "lucide-react";
+
+import { downloadResource } from "@/app/lib/api/resources";
 import { getFileTypeBadgeClass } from "@/app/lib/get-file-type-badge-class";
 import { formatDate } from "@/app/lib/format-date";
 
@@ -18,11 +23,55 @@ export default function DashboardRecentResources({
   resources,
   onOpen,
 }: DashboardRecentResourcesProps) {
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleDownload(resource: {
+    id: string;
+    title: string;
+    type: string;
+  }) {
+    try {
+      setDownloadingId(resource.id);
+      setError(null);
+
+      const blob = await downloadResource(resource.id);
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${resource.title}.${resource.type.toLowerCase()}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to download resource.",
+      );
+    } finally {
+      setDownloadingId(null);
+    }
+  }
+
   return (
     <div
       className="overflow-hidden rounded-xl border bg-background shadow-even-sm"
       style={{ borderColor: "var(--border)" }}
     >
+      {error && (
+        <div
+          className="border-b px-6 py-3 text-sm"
+          style={{
+            borderColor: "var(--danger, #e53e3e)",
+            color: "var(--danger, #e53e3e)",
+          }}
+        >
+          {error}
+        </div>
+      )}
+
       <table className="w-full border-collapse text-left">
         <tbody>
           {resources.length === 0 ? (
@@ -40,6 +89,8 @@ export default function DashboardRecentResources({
                 resource.title.length > 168
                   ? resource.title.slice(0, 168) + "..."
                   : resource.title;
+
+              const isDownloading = downloadingId === resource.id;
 
               return (
                 <tr
@@ -96,11 +147,27 @@ export default function DashboardRecentResources({
 
                   {/* Download */}
                   <td className="w-15 px-6 py-4 text-right">
-                    <Download
-                      size={19}
-                      strokeWidth={1.7}
+                    <button
+                      type="button"
+                      title="Download"
+                      disabled={isDownloading}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleDownload(resource);
+                      }}
+                      className="cursor-pointer transition-opacity hover:opacity-60 disabled:cursor-not-allowed disabled:opacity-40"
                       style={{ color: "var(--muted)" }}
-                    />
+                    >
+                      {isDownloading ? (
+                        <Loader2
+                          size={19}
+                          strokeWidth={1.7}
+                          className="animate-spin"
+                        />
+                      ) : (
+                        <Download size={19} strokeWidth={1.7} />
+                      )}
+                    </button>
                   </td>
                 </tr>
               );

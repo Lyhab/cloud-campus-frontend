@@ -16,6 +16,7 @@ interface CourseHeaderProps {
   onEnrollClick: () => void;
   onJoinClick: () => void;
   onLeaveClick: () => void;
+  onUploadClick: () => void;
 }
 
 export default function CourseHeader({
@@ -32,6 +33,7 @@ export default function CourseHeader({
   onEnrollClick,
   onJoinClick,
   onLeaveClick,
+  onUploadClick,
 }: CourseHeaderProps) {
   return (
     <div
@@ -94,7 +96,7 @@ export default function CourseHeader({
               <button
                 type="button"
                 onClick={onEnrollClick}
-                className="flex cursor-pointer items-center gap-2 rounded-lg bg-(--smoke) px-4 py-2.5 text-[13px] font-medium text-(--foreground) transition-colors hover:bg-(--hover)"
+                className="flex cursor-pointer items-center gap-2 rounded-lg bg-(--smoke) px-4 py-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-(--hover)"
               >
                 <UserPlus size={15} strokeWidth={1.8} />
                 Enroll Students
@@ -117,6 +119,7 @@ export default function CourseHeader({
                     {/* Upload Resource */}
                     <button
                       type="button"
+                      onClick={onUploadClick}
                       className="flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-medium text-white transition-opacity bg-(--primary) hover:opacity-90"
                     >
                       <Upload size={16} strokeWidth={1.8} />

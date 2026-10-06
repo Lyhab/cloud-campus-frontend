@@ -86,16 +86,6 @@ export default function DashboardRecentUploads({
               >
                 {formatDateTime(upload.date)}
               </span>
-
-              {/* Download */}
-              <span className="w-10 shrink-0 text-right">
-                <Download
-                  size={19}
-                  strokeWidth={1.7}
-                  style={{ color: "var(--muted)" }}
-                  className="ml-auto"
-                />
-              </span>
             </button>
           );
         })

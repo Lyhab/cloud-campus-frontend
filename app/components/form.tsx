@@ -39,7 +39,7 @@ interface FormProps {
 
   // Final payload always has plain values — any File fields are resolved
   // to their uploaded URL (string) before this is called.
-  onSubmit: (data: Record<string, string | boolean | null>) => void;
+  onSubmit: (data: Record<string, string | boolean | File | null>) => void;
   onClose: () => void;
 
   // Optional: how to upload a file (e.g. to S3 via a presigned URL) and get
@@ -90,15 +90,13 @@ export default function Form({
     setIsSubmitting(true);
 
     try {
-      const resolved: Record<string, string | boolean | null> = {};
+      const resolved: Record<string, string | boolean | File | null> = {};
 
       for (const [name, value] of Object.entries(formData)) {
         if (value instanceof File) {
-          // If the caller gave us an uploader, use it; otherwise skip the
-          // field rather than passing a raw File into onSubmit.
           resolved[name] = onFileUpload
             ? await onFileUpload(value, name)
-            : null;
+            : value;
         } else {
           resolved[name] = value;
         }

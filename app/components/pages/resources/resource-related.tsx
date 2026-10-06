@@ -1,7 +1,8 @@
 "use client";
 
 import { FileText, Star } from "lucide-react";
-import type { Resource } from "@/app/lib/types";
+
+import type { Resource } from "@/app/lib/api/resources";
 import { getFileTypeBadgeClass } from "@/app/lib/get-file-type-badge-class";
 
 interface ResourceRelatedProps {
@@ -32,6 +33,7 @@ export default function ResourceRelated({
             const relatedTypeClass = getFileTypeBadgeClass(
               relatedResource.fileType,
             );
+            const relatedRating = Number(relatedResource.avgRating) || 0;
 
             return (
               <button
@@ -57,6 +59,7 @@ export default function ResourceRelated({
                   <p
                     className="truncate text-[13px] font-medium"
                     style={{ color: "var(--foreground)" }}
+                    title={relatedResource.title}
                   >
                     {relatedResource.title}
                   </p>
@@ -88,7 +91,14 @@ export default function ResourceRelated({
                         className="text-[11px]"
                         style={{ color: "#f59e0b" }}
                       >
-                        {relatedResource.rating}
+                        {relatedRating.toFixed(1)}
+                      </span>
+
+                      <span
+                        className="text-[11px]"
+                        style={{ color: "var(--muted)" }}
+                      >
+                        ({relatedResource.ratingCount})
                       </span>
                     </div>
                   </div>

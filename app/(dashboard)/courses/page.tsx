@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { Eye, Plus, SquarePen, Trash2, Users } from "lucide-react";
+import { Eye, FileText, Plus, SquarePen, Trash2, Users } from "lucide-react";
 
 // Components
 import Table, { Column } from "@/app/components/table";
@@ -942,15 +942,19 @@ function CoursesPageContent() {
                 {/* Stats */}
                 <div
                   className="my-4 flex items-center gap-4 border-t pt-3"
-                  style={{
-                    borderColor: "var(--border-light)",
-                  }}
+                  style={{ borderColor: "var(--border-light)" }}
                 >
                   <div
                     className="flex items-center gap-1.5 text-[11px]"
-                    style={{
-                      color: "var(--muted)",
-                    }}
+                    style={{ color: "var(--muted)" }}
+                  >
+                    <FileText size={13} strokeWidth={1.6} />
+                    {course.resourceCount} resources
+                  </div>
+
+                  <div
+                    className="flex items-center gap-1.5 text-[11px]"
+                    style={{ color: "var(--muted)" }}
                   >
                     <Users size={13} strokeWidth={1.6} />
                     {course.studentCount} members
