@@ -44,16 +44,6 @@ interface SearchSection {
 const MIN_QUERY_LENGTH = 2;
 const RESULTS_PER_SECTION = 5;
 
-function getFullName(person: {
-  firstName: string;
-  middleName?: string | null;
-  lastName: string;
-}) {
-  return [person.firstName, person.middleName, person.lastName]
-    .filter(Boolean)
-    .join(" ");
-}
-
 function buildSections(data: SearchResponse): SearchSection[] {
   const sections: SearchSection[] = [
     {
@@ -179,8 +169,6 @@ export default function Header({
   // Run search
   useEffect(() => {
     if (!isAuthenticated || !hasQuery) {
-      setResults(null);
-      setSearchLoading(false);
       return;
     }
 
