@@ -2,12 +2,11 @@
 
 import Sidebar from "../components/sidebar";
 import Header from "../components/header";
+import { SessionRefresher } from "../components/session-refresher";
 import { useAuth } from "../context/AuthContext";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
-
-  const role = user?.role ?? "student";
 
   const name = user ? `${user.firstName} ${user.lastName}` : "Guest";
 
@@ -17,7 +16,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar role={role} />
+      {user && <SessionRefresher />}
+      <Sidebar />
 
       <div className="flex min-h-0 flex-1 flex-col">
         <Header
