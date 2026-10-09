@@ -119,7 +119,6 @@ export default async function Home() {
               Explore Resources
             </Link>
           </nav>
-
           <div className="flex items-center gap-2 sm:gap-5">
             <Link
               href="/sign-in"

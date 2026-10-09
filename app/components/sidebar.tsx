@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -107,18 +108,17 @@ export default function Sidebar() {
         style={{ borderColor: "var(--border-light)" }}
       >
         <div
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-background"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
           style={{ backgroundColor: "var(--primary)" }}
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            className="h-5 w-5"
-          >
-            <path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 8.7 4.7 4.7 0 0 0 7 18Z" />
-          </svg>
+          <Image
+            src="/cloud-campus-logo.png"
+            alt=""
+            width={64}
+            height={64}
+            priority
+            className="h-6 w-6 object-contain"
+          />
         </div>
 
         <span

@@ -8,6 +8,11 @@ type ApiRequestOptions = RequestInit & {
 const EXPIRY_COOKIE = "cc_access_expires_at";
 const REFRESH_BUFFER_MS = 30_000;
 
+// Pages guests can view: a failed refresh here must NOT redirect to sign-in.
+// "/" matches only the landing page; the others also match their sub-routes
+// (e.g. /courses/123). /sign-in is included to avoid a redirect loop.
+const PUBLIC_PATHS = ["/", "/sign-in", "/sign-up", "/courses", "/resources"];
+
 let refreshPromise: Promise<boolean> | null = null;
 
 async function doRefresh(): Promise<boolean> {
@@ -45,6 +50,22 @@ export function accessTokenExpiresSoon(): boolean {
   if (!match) return false;
 
   return Number(match[1]) - Date.now() < REFRESH_BUFFER_MS;
+}
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some((publicPath) =>
+    publicPath === "/"
+      ? pathname === "/"
+      : pathname === publicPath || pathname.startsWith(`${publicPath}/`),
+  );
+}
+
+function shouldRedirectToSignIn(): boolean {
+  if (typeof window === "undefined") return false;
+
+  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+
+  return !isPublicPath(pathname);
 }
 
 export async function apiRequest<T>(
@@ -85,13 +106,14 @@ export async function apiRequest<T>(
     }
 
     // Refresh failed → session is dead, send user to sign in
-    if (
-      typeof window !== "undefined" &&
-      window.location.pathname !== "/sign-in"
-    ) {
+    // (only on protected pages; guests can stay on public pages)
+    if (shouldRedirectToSignIn()) {
       // Full reload on purpose: clears all client state when the session dies.
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = "/sign-in";
+
+      // Page is unloading: never settle, so no error flashes before the redirect.
+      return new Promise<T>(() => {});
     }
   }
 
